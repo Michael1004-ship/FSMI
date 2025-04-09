@@ -1,0 +1,34 @@
+# Web Framework
+streamlit==1.32.0
+
+# Data Handling
+pandas==2.1.4
+numpy==1.26.4
+
+# Visualization
+plotly==5.18.0
+
+# Machine Learning
+scikit-learn==1.3.2
+sentence-transformers==2.5.0
+tqdm==4.66.2
+joblib==1.3.2
+
+# Text Processing
+nltk==3.8.1
+
+# Google Cloud
+google-cloud-storage==2.14.0
+
+# AI/OpenAI
+openai==1.14.0
+python-dotenv==1.0.1
+
+# System Monitoring
+psutil==5.9.8
+
+# Reddit API
+praw==7.7.1
+
+# Utility
+requests==2.31.0
