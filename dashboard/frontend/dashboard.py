@@ -6,6 +6,17 @@ from google.cloud import storage
 import io
 import plotly.express as px
 
+# Google Cloud 인증 설정
+import os
+import json
+
+key_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+
+if key_json:
+    with open("/tmp/gcs_key.json", "w") as f:
+        f.write(key_json)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcs_key.json"
+
 # --- CONFIG ---
 BUCKET_NAME = "emotion-index-data"
 GCS_PREFIX = "final_anxiety_index"
