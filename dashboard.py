@@ -21,11 +21,15 @@ class GCSHandler:
         try:
             from google.cloud import storage
             
-            # 환경변수에서 JSON 가져오기
-            credential_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+            # secrets에서 읽도록 수정
+            if "google" in st.secrets and "credentials_json" in st.secrets["google"]:
+                credential_json = st.secrets["google"]["credentials_json"]
+                st.markdown("🔐 Secret credential received")
+            else:
+                credential_json = None
+                st.error("❌ Google credentials not found in secrets")
             
             if credential_json:
-                st.markdown("🔐 Credential received")
                 with open("/tmp/gcs_key.json", "w") as f:
                     f.write(credential_json)
                 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcs_key.json"
@@ -36,7 +40,7 @@ class GCSHandler:
                 st.markdown("✅ GCS client initialized")
                 return True
             else:
-                st.error("❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found")
+                st.error("❌ Credentials not available")
                 return False
                 
         except Exception as e:
