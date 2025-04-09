@@ -7,36 +7,47 @@ import plotly.express as px
 import json
 from google.cloud import storage
 
+# 전역 변수로 storage_client 선언
+storage_client = None
+
 # 디버깅 시작
 st.markdown("✅ App Started")
 
-# 환경변수에서 JSON 가져오기
-credential_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+# Google Cloud Storage 초기화 함수
+def initialize_storage_client():
+    global storage_client
+    try:
+        # 환경변수에서 JSON 가져오기
+        credential_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
 
-try:
-    # 파일로 저장 (한 번만 실행되도록 if문 추가)
-    if credential_json and not os.path.exists("/tmp/gcs_key.json"):
-        st.markdown("🔐 Credential received")
-        with open("/tmp/gcs_key.json", "w") as f:
-            f.write(credential_json)
-        st.markdown("📂 Credential file created")
-    else:
-        if not credential_json:
-            st.error("❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found")
+        # 파일로 저장 (한 번만 실행되도록 if문 추가)
+        if credential_json and not os.path.exists("/tmp/gcs_key.json"):
+            st.markdown("🔐 Credential received")
+            with open("/tmp/gcs_key.json", "w") as f:
+                f.write(credential_json)
+            st.markdown("📂 Credential file created")
         else:
-            st.markdown("📂 Using existing credential file")
+            if not credential_json:
+                st.error("❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found")
+                return None
+            else:
+                st.markdown("📂 Using existing credential file")
 
-    # 환경 변수 설정
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcs_key.json"
+        # 환경 변수 설정
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcs_key.json"
 
-    # ✅ storage_client 초기화
-    storage_client = storage.Client()
-    st.markdown("✅ GCS client initialized")
+        # storage_client 초기화
+        storage_client = storage.Client()
+        st.markdown("✅ GCS client initialized")
+        return storage_client
 
-except Exception as e:
-    st.exception(e)
-    st.error("Failed to initialize Google Cloud Storage client")
-    storage_client = None
+    except Exception as e:
+        st.exception(e)
+        st.error("Failed to initialize Google Cloud Storage client")
+        return None
+
+# storage_client 초기화 실행
+storage_client = initialize_storage_client()
 
 # --- CONFIG ---
 BUCKET_NAME = "emotion-index-data"
@@ -45,6 +56,7 @@ GCS_PREFIX = "final_anxiety_index"
 # --- FUNCTIONS ---
 @st.cache_data(ttl=3600)
 def list_available_dates():
+    global storage_client
     if storage_client is None:
         st.error("Storage client not initialized")
         return []
