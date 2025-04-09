@@ -2,56 +2,65 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
-from google.cloud import storage
 import io
 import plotly.express as px
+import json
+from google.cloud import storage
 
-# 디버깅 코드 추가
+# 디버깅 시작
 st.markdown("✅ App Started")
 
+# 환경변수에서 JSON 가져오기
+credential_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+
 try:
-    import os
-    import json
-
-    key_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-
-    if key_json:
+    # 파일로 저장 (한 번만 실행되도록 if문 추가)
+    if credential_json and not os.path.exists("/tmp/gcs_key.json"):
         st.markdown("🔐 Credential received")
         with open("/tmp/gcs_key.json", "w") as f:
-            f.write(key_json)
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcs_key.json"
+            f.write(credential_json)
         st.markdown("📂 Credential file created")
     else:
-        st.error("❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found")
+        if not credential_json:
+            st.error("❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found")
+        else:
+            st.markdown("📂 Using existing credential file")
 
-    # GCS 클라이언트 생성 테스트
-    from google.cloud import storage
-    client = storage.Client()
+    # 환경 변수 설정
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcs_key.json"
+
+    # ✅ storage_client 초기화
+    storage_client = storage.Client()
     st.markdown("✅ GCS client initialized")
+
 except Exception as e:
     st.exception(e)
+    st.error("Failed to initialize Google Cloud Storage client")
+    storage_client = None
 
 # --- CONFIG ---
 BUCKET_NAME = "emotion-index-data"
 GCS_PREFIX = "final_anxiety_index"
 
-# --- GCS CLIENT SETUP ---
-try:
-    storage_client = storage.Client()
-except Exception as e:
-    st.error(f"Failed to initialize main storage client: {str(e)}")
-
 # --- FUNCTIONS ---
 @st.cache_data(ttl=3600)
 def list_available_dates():
-    bucket = storage_client.bucket(BUCKET_NAME)
-    blobs = storage_client.list_blobs(bucket, prefix=GCS_PREFIX + "/")
-    dates = set()
-    for blob in blobs:
-        parts = blob.name.split("/")
-        if len(parts) > 2 and parts[1]:
-            dates.add(parts[1])
-    return sorted(list(dates), reverse=True)
+    if storage_client is None:
+        st.error("Storage client not initialized")
+        return []
+        
+    try:
+        bucket = storage_client.bucket(BUCKET_NAME)
+        blobs = storage_client.list_blobs(bucket, prefix=GCS_PREFIX + "/")
+        dates = set()
+        for blob in blobs:
+            parts = blob.name.split("/")
+            if len(parts) > 2 and parts[1]:
+                dates.add(parts[1])
+        return sorted(list(dates), reverse=True)
+    except Exception as e:
+        st.error(f"Error listing dates: {str(e)}")
+        return []
 
 def load_anxiety_index(date):
     blob_path = f"{GCS_PREFIX}/{date}/anxiety_index_final.csv"
