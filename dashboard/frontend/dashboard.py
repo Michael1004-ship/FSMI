@@ -6,38 +6,40 @@ from google.cloud import storage
 import io
 import plotly.express as px
 
-# Google Cloud 인증 설정 디버깅
-import os
-import json
-
-print("🔐 DEBUG: Checking GOOGLE_APPLICATION_CREDENTIALS_JSON...")
-print("✔️ Exists:", os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON") is not None)
+# 디버깅 코드 추가
+st.markdown("✅ App Started")
 
 try:
+    import os
+    import json
+
     key_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+
     if key_json:
+        st.markdown("🔐 Credential received")
         with open("/tmp/gcs_key.json", "w") as f:
             f.write(key_json)
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcs_key.json"
+        st.markdown("📂 Credential file created")
     else:
-        print("❌ Secret not found")
-except Exception as e:
-    print("❌ Error creating credentials:", e)
+        st.error("❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found")
 
-# Google Cloud Storage 초기화 시도
-try:
-    storage_client = storage.Client()
-    print("✅ Google Cloud Storage client initialized successfully")
+    # GCS 클라이언트 생성 테스트
+    from google.cloud import storage
+    client = storage.Client()
+    st.markdown("✅ GCS client initialized")
 except Exception as e:
-    st.error(f"Failed to initialize Google Cloud Storage: {str(e)}")
-    print(f"❌ Storage client error: {e}")
+    st.exception(e)
 
 # --- CONFIG ---
 BUCKET_NAME = "emotion-index-data"
 GCS_PREFIX = "final_anxiety_index"
 
 # --- GCS CLIENT SETUP ---
-storage_client = storage.Client()
+try:
+    storage_client = storage.Client()
+except Exception as e:
+    st.error(f"Failed to initialize main storage client: {str(e)}")
 
 # --- FUNCTIONS ---
 @st.cache_data(ttl=3600)
