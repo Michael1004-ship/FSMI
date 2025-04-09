@@ -5,101 +5,113 @@ from datetime import datetime
 import io
 import plotly.express as px
 import json
-from google.cloud import storage
-
-# 전역 변수로 storage_client 선언
-storage_client = None
 
 # 디버깅 시작
 st.markdown("✅ App Started")
 
-# Google Cloud Storage 초기화 함수
-def initialize_storage_client():
-    global storage_client
-    try:
-        # 환경변수에서 JSON 가져오기
-        credential_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-
-        # 파일로 저장 (한 번만 실행되도록 if문 추가)
-        if credential_json and not os.path.exists("/tmp/gcs_key.json"):
-            st.markdown("🔐 Credential received")
-            with open("/tmp/gcs_key.json", "w") as f:
-                f.write(credential_json)
-            st.markdown("📂 Credential file created")
-        else:
-            if not credential_json:
-                st.error("❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found")
-                return None
+# GCS 관련 클래스 - 모든 스토리지 관련 기능을 캡슐화
+class GCSHandler:
+    def __init__(self):
+        self.client = None
+        self.bucket_name = "emotion-index-data"
+        self.prefix = "final_anxiety_index"
+        self.initialize()
+    
+    def initialize(self):
+        try:
+            from google.cloud import storage
+            
+            # 환경변수에서 JSON 가져오기
+            credential_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+            
+            if credential_json:
+                st.markdown("🔐 Credential received")
+                with open("/tmp/gcs_key.json", "w") as f:
+                    f.write(credential_json)
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcs_key.json"
+                st.markdown("📂 Credential file created")
+                
+                # 클라이언트 초기화
+                self.client = storage.Client()
+                st.markdown("✅ GCS client initialized")
+                return True
             else:
-                st.markdown("📂 Using existing credential file")
+                st.error("❌ GOOGLE_APPLICATION_CREDENTIALS_JSON not found")
+                return False
+                
+        except Exception as e:
+            st.exception(e)
+            st.error("Failed to initialize Google Cloud Storage client")
+            return False
+    
+    def list_available_dates(self):
+        if not self.client:
+            st.error("Storage client not initialized")
+            return []
+            
+        try:
+            bucket = self.client.bucket(self.bucket_name)
+            blobs = self.client.list_blobs(bucket, prefix=self.prefix + "/")
+            dates = set()
+            for blob in blobs:
+                parts = blob.name.split("/")
+                if len(parts) > 2 and parts[1]:
+                    dates.add(parts[1])
+            return sorted(list(dates), reverse=True)
+        except Exception as e:
+            st.error(f"Error listing dates: {str(e)}")
+            return []
+    
+    def load_anxiety_index(self, date):
+        if not self.client:
+            return None
+            
+        try:
+            blob_path = f"{self.prefix}/{date}/anxiety_index_final.csv"
+            bucket = self.client.bucket(self.bucket_name)
+            blob = bucket.blob(blob_path)
+            if blob.exists():
+                data = blob.download_as_text()
+                df = pd.read_csv(io.StringIO(data))
+                df['Date'] = date  # 날짜 열 추가
+                return df
+            return None
+        except Exception as e:
+            st.error(f"Error loading anxiety index: {str(e)}")
+            return None
+    
+    def load_text_file(self, date, filename):
+        if not self.client:
+            return "(GCS not initialized)"
+            
+        try:
+            blob_path = f"{self.prefix}/{date}/{filename}"
+            bucket = self.client.bucket(self.bucket_name)
+            blob = bucket.blob(blob_path)
+            if blob.exists():
+                return blob.download_as_text()
+            return "(File not found)"
+        except Exception as e:
+            st.error(f"Error loading text file: {str(e)}")
+            return "(Error loading file)"
+    
+    def load_image(self, date, filename):
+        if not self.client:
+            return None
+            
+        try:
+            blob_path = f"{self.prefix}/{date}/{filename}"
+            bucket = self.client.bucket(self.bucket_name)
+            blob = bucket.blob(blob_path)
+            if blob.exists():
+                return blob.download_as_bytes()
+            return None
+        except Exception as e:
+            st.error(f"Error loading image: {str(e)}")
+            return None
 
-        # 환경 변수 설정
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcs_key.json"
-
-        # storage_client 초기화
-        storage_client = storage.Client()
-        st.markdown("✅ GCS client initialized")
-        return storage_client
-
-    except Exception as e:
-        st.exception(e)
-        st.error("Failed to initialize Google Cloud Storage client")
-        return None
-
-# storage_client 초기화 실행
-storage_client = initialize_storage_client()
-
-# --- CONFIG ---
-BUCKET_NAME = "emotion-index-data"
-GCS_PREFIX = "final_anxiety_index"
-
-# --- FUNCTIONS ---
-@st.cache_data(ttl=3600)
-def list_available_dates():
-    global storage_client
-    if storage_client is None:
-        st.error("Storage client not initialized")
-        return []
-        
-    try:
-        bucket = storage_client.bucket(BUCKET_NAME)
-        blobs = storage_client.list_blobs(bucket, prefix=GCS_PREFIX + "/")
-        dates = set()
-        for blob in blobs:
-            parts = blob.name.split("/")
-            if len(parts) > 2 and parts[1]:
-                dates.add(parts[1])
-        return sorted(list(dates), reverse=True)
-    except Exception as e:
-        st.error(f"Error listing dates: {str(e)}")
-        return []
-
-def load_anxiety_index(date):
-    blob_path = f"{GCS_PREFIX}/{date}/anxiety_index_final.csv"
-    bucket = storage_client.bucket(BUCKET_NAME)
-    blob = bucket.blob(blob_path)
-    if blob.exists():
-        data = blob.download_as_text()
-        df = pd.read_csv(io.StringIO(data))
-        df['Date'] = date  # 날짜 열 추가
-        return df
-    return None
-
-def load_text_file(date, filename):
-    blob_path = f"{GCS_PREFIX}/{date}/{filename}"
-    bucket = storage_client.bucket(BUCKET_NAME)
-    blob = bucket.blob(blob_path)
-    if blob.exists():
-        return blob.download_as_text()
-    return "(File not found)"
-
-def load_image(date, filename):
-    blob_path = f"{GCS_PREFIX}/{date}/{filename}"
-    bucket = storage_client.bucket(BUCKET_NAME)
-    blob = bucket.blob(blob_path)
-    if blob.exists():
-        return blob.download_as_bytes()
-    return None
+# GCS 핸들러 생성
+gcs = GCSHandler()
 
 # 표시용 날짜 형식 변환
 def format_date_display(date_str):
@@ -112,8 +124,8 @@ page = st.sidebar.radio("Go to:", ["Dashboard", "Time Series"])
 
 # --- SIDEBAR ---
 st.sidebar.title("📅 Select Date")
-available_dates = list_available_dates()
-selected_date = st.sidebar.selectbox("Choose a date:", available_dates)
+available_dates = gcs.list_available_dates()
+selected_date = st.sidebar.selectbox("Choose a date:", available_dates if available_dates else ["No dates available"])
 
 # Add creator information at the bottom of sidebar
 st.sidebar.markdown("---")
@@ -160,7 +172,7 @@ if page == "Dashboard":
         """)
 
     # ① 오늘의 Anxiety Index - 주요 지표
-    df_index = load_anxiety_index(selected_date)
+    df_index = gcs.load_anxiety_index(selected_date)
     if df_index is not None and not df_index.empty:
         # 컬럼명 확인
         anxiety_col = "Anxiety Index" if "Anxiety Index" in df_index.columns else "anxiety_index"
@@ -239,26 +251,26 @@ if page == "Dashboard":
 
     with col1:
         st.markdown("**News**")
-        img1 = load_image(selected_date, "news_umap_plot.png")
-        img2 = load_image(selected_date, "news_emotion_distribution.png")
+        img1 = gcs.load_image(selected_date, "news_umap_plot.png")
+        img2 = gcs.load_image(selected_date, "news_emotion_distribution.png")
         if img1: st.image(img1, caption="News UMAP")
         if img2: st.image(img2, caption="News Emotion Distribution")
 
     with col2:
         st.markdown("**Reddit**")
-        img3 = load_image(selected_date, "reddit_umap_plot.png")
-        img4 = load_image(selected_date, "reddit_emotion_distribution.png")
+        img3 = gcs.load_image(selected_date, "reddit_umap_plot.png")
+        img4 = gcs.load_image(selected_date, "reddit_emotion_distribution.png")
         if img3: st.image(img3, caption="Reddit UMAP")
         if img4: st.image(img4, caption="Reddit Emotion Distribution")
 
     # ③ GPT 보고서
     st.markdown("### 📄 GPT Emotion Report")
-    report = load_text_file(selected_date, "gpt_report_combined.txt")
+    report = gcs.load_text_file(selected_date, "gpt_report_combined.txt")
     st.text_area("GPT Report", value=report, height=400, key="report")
 
     # ④ Appendix
     if st.checkbox("📑 Show Appendix (Representative Sentences)"):
-        appendix = load_text_file(selected_date, "gpt_report_appendix.txt")
+        appendix = gcs.load_text_file(selected_date, "gpt_report_appendix.txt")
         st.text_area("Appendix", value=appendix, height=500, key="appendix")
 
 elif page == "Time Series":
@@ -302,7 +314,7 @@ elif page == "Time Series":
     all_data = []
     
     for d in available_dates:
-        df = load_anxiety_index(d)
+        df = gcs.load_anxiety_index(d)
         if df is not None:
             # Add time information for twice daily data
             if 'timestamp' not in df.columns:
