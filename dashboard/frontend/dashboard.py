@@ -77,11 +77,49 @@ st.sidebar.title("📅 Select Date")
 available_dates = list_available_dates()
 selected_date = st.sidebar.selectbox("Choose a date:", available_dates)
 
+# Add creator information at the bottom of sidebar
+st.sidebar.markdown("---")
+st.sidebar.markdown("### About")
+st.sidebar.markdown("""
+**FSMI Project**  
+[GitHub Repository](https://github.com/Michael1004-ship/FSMI)
+""")
+
 if page == "Dashboard":
     st.title("📉 Real-time Anxiety Dashboard")
 
     # Note about time zone
     st.caption("Note: All times shown are in UTC. This dashboard is updated twice daily, corresponding to the US stock market opening (around 14:30 UTC) and closing (around 21:00 UTC) hours.")
+
+    # Data sources information
+    with st.expander("About the Data Sources"):
+        st.markdown("""
+        ### News Sources
+        The news data is collected from top financial news outlets, including:
+        - The New York Times (nytimes.com)
+        - Wall Street Journal (wsj.com)
+        - Bloomberg (bloomberg.com)
+        - CNBC (cnbc.com)
+        - CNN (cnn.com)
+        - Financial Times (ft.com)
+        - Reuters (reuters.com)
+        - Yahoo Finance (finance.yahoo.com)
+        - Forbes (forbes.com)
+        - MarketWatch (marketwatch.com)
+        
+        ### Reddit Communities
+        The social media data is collected from the following subreddits:
+        
+        **Economics & Finance Related:**
+        - r/economics, r/economy, r/MacroEconomics, r/EconMonitor
+        - r/finance, r/investing, r/financialindependence, r/personalfinance
+        - r/wallstreetbets, r/stocks, r/StockMarket, r/dividends
+        
+        **Emotion & Sentiment Related:**
+        - r/anxiety, r/depression, r/offmychest
+        
+        All data is analyzed using natural language processing models to extract sentiment patterns and compute the anxiety index.
+        """)
 
     # ① 오늘의 Anxiety Index - 주요 지표
     df_index = load_anxiety_index(selected_date)
@@ -190,6 +228,36 @@ elif page == "Time Series":
 
     # Note about time zone and market hours
     st.caption("Note: All times shown are in UTC. This dashboard is updated twice daily, corresponding to the US stock market opening (around 14:30 UTC) and closing (around 21:00 UTC) hours.")
+    
+    # Data sources information
+    with st.expander("About the Data Sources"):
+        st.markdown("""
+        ### News Sources
+        The news data is collected from top financial news outlets, including:
+        - The New York Times (nytimes.com)
+        - Wall Street Journal (wsj.com)
+        - Bloomberg (bloomberg.com)
+        - CNBC (cnbc.com)
+        - CNN (cnn.com)
+        - Financial Times (ft.com)
+        - Reuters (reuters.com)
+        - Yahoo Finance (finance.yahoo.com)
+        - Forbes (forbes.com)
+        - MarketWatch (marketwatch.com)
+        
+        ### Reddit Communities
+        The social media data is collected from the following subreddits:
+        
+        **Economics & Finance Related:**
+        - r/economics, r/economy, r/MacroEconomics, r/EconMonitor
+        - r/finance, r/investing, r/financialindependence, r/personalfinance
+        - r/wallstreetbets, r/stocks, r/StockMarket, r/dividends
+        
+        **Emotion & Sentiment Related:**
+        - r/anxiety, r/depression, r/offmychest
+        
+        All data is analyzed using natural language processing models to extract sentiment patterns and compute the anxiety index.
+        """)
 
     # Track loaded dates
     processed_dates = set()
