@@ -6,9 +6,6 @@ import io
 import plotly.express as px
 import json
 
-# 디버깅 시작
-st.markdown("✅ App Started")
-
 # GCS 관련 클래스 - 모든 스토리지 관련 기능을 캡슐화
 class GCSHandler:
     def __init__(self):
@@ -24,7 +21,6 @@ class GCSHandler:
             # secrets에서 읽도록 수정
             if "google" in st.secrets and "credentials_json" in st.secrets["google"]:
                 credential_json = st.secrets["google"]["credentials_json"]
-                st.markdown("🔐 Secret credential received")
             else:
                 credential_json = None
                 st.error("❌ Google credentials not found in secrets")
@@ -33,11 +29,9 @@ class GCSHandler:
                 with open("/tmp/gcs_key.json", "w") as f:
                     f.write(credential_json)
                 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcs_key.json"
-                st.markdown("📂 Credential file created")
                 
                 # 클라이언트 초기화
                 self.client = storage.Client()
-                st.markdown("✅ GCS client initialized")
                 return True
             else:
                 st.error("❌ Credentials not available")
