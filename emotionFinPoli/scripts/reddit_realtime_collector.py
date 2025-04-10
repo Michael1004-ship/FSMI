@@ -27,7 +27,7 @@ POST_LIMIT = 100  # 각 서브레딧당 최대 수집 수
 # ✅ 로깅 설정
 # 로그 디렉토리 설정
 LOG_ROOT = "/home/hwangjeongmun691/logs"
-today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+today = datetime.utcnow().strftime("%Y-%m-%d")
 LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
 
 # 디렉토리 생성
@@ -72,7 +72,7 @@ def save_to_gcs(df, subreddit, date_str):
 # ✅ 메인 실행
 
 def run():
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     date_str = now.strftime("%Y-%m-%d")
     logger.info(f"Reddit 수집 시작: {date_str}")
 

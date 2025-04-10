@@ -31,7 +31,7 @@ load_dotenv()  # .env 파일 자동 로드
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # ✅ 오늘 날짜
-DATE = datetime.datetime.utcnow().strftime("%Y-%m-%d")  # 이 줄을 주석 처리
+DATE = datetime.utcnow().strftime("%Y-%m-%d")  # 이 줄을 주석 처리
 # DATE = "2025-04-08"  # 고정된 날짜로 설정
 
 # ✅ 소스 종류

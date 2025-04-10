@@ -134,7 +134,7 @@ def save_accumulated_to_gcs(df, date_str):
 # ✅ 메인 실행
 
 def run():
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     date_str = now.strftime("%Y-%m-%d")
     yesterday_str = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
 

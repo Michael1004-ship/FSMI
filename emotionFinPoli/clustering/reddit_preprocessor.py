@@ -9,7 +9,6 @@ from google.cloud import storage
 from tqdm import tqdm
 
 # ✅ 로깅 설정
-import os
 from datetime import datetime
 
 # 로그 디렉토리 설정
@@ -40,7 +39,7 @@ SUBREDDITS = [
 ]
 
 # ✅ 오늘 날짜 (UTC 기준 → 한국 기준이면 +9 설정)
-today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+today = datetime.utcnow().strftime("%Y-%m-%d")
 
 def get_memory_usage():
     process = psutil.Process(os.getpid())

@@ -112,7 +112,7 @@ def run(start_str, end_str):
             time_filter = 'all'  # 기본값
             
             # 현재 시점으로부터 날짜 차이 계산
-            days_diff = (datetime.datetime.utcnow().date() - start_dt.date()).days
+            days_diff = (datetime.utcnow().date() - start_dt.date()).days
             
             if days_diff <= 1:
                 time_filter = 'day'

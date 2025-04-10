@@ -10,7 +10,7 @@ import os
 
 # 로그 디렉토리 설정
 LOG_ROOT = "/home/hwangjeongmun691/logs"
-today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+today = datetime.utcnow().strftime("%Y-%m-%d")
 LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
 
 # 디렉토리 생성
@@ -167,7 +167,7 @@ def build_anxiety_index(date_str):
 
 
 if __name__ == "__main__":
-    today = datetime.datetime.utcnow().strftime("%Y-%m-%d")  # UTC 기준 사용
+    today = datetime.utcnow().strftime("%Y-%m-%d")  # UTC 기준 사용
     
     parser = argparse.ArgumentParser(description="Build Anxiety Index from emotion scores")
     parser.add_argument("--date", default=today, help=f"Date folder in format YYYY-MM-DD (default: today {today})")

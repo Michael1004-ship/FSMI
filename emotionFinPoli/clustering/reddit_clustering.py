@@ -29,7 +29,7 @@ SUBREDDITS = [
     "investing", "MacroEconomics", "offmychest", "personalfinance",
     "StockMarket", "stocks", "wallstreetbets"
 ]
-DATE = datetime.datetime.utcnow().strftime("%Y-%m-%d")  # 이 줄을 주석 처리
+DATE = datetime.utcnow().strftime("%Y-%m-%d")  # 이 줄을 주석 처리
 # DATE = "2025-04-08"  # 고정된 날짜로 설정
 MODEL_NAME = "sentence-transformers/all-distilroberta-v1"
 CPU_CORES = max(1, multiprocessing.cpu_count() - 1)  # 1개 코어는 남겨둠
@@ -39,7 +39,7 @@ CPU_CORES = max(1, multiprocessing.cpu_count() - 1)  # 1개 코어는 남겨둠
 # ----------------------------
 # 로그 디렉토리 설정
 LOG_ROOT = "/home/hwangjeongmun691/logs"
-today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+today = datetime.utcnow().strftime("%Y-%m-%d")
 LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
 
 # 디렉토리 생성
