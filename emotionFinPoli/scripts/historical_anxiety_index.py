@@ -1,19 +1,28 @@
+from datetime import datetime, timedelta
 # historical_anxiety_index.py
 import os
 import sys
 import logging
 import argparse
 import subprocess
-import datetime
+
 from pathlib import Path
 from google.cloud import storage
+
+# 로그 디렉토리 설정
+LOG_ROOT = "/home/hwangjeongmun691/logs"
+today = datetime.utcnow().strftime("%Y-%m-%d")
+LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+
+# 디렉토리 생성
+os.makedirs(LOG_DATE_DIR, exist_ok=True)
 
 # 로깅 설정
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("historical_anxiety_index.log"),
+        logging.FileHandler(f"{LOG_DATE_DIR}/historical_anxiety_index.log"),
         logging.StreamHandler()
     ]
 )
@@ -171,7 +180,7 @@ def verify_output_files(date_str):
 def process_date(target_date):
     """특정 날짜의 데이터 처리 및 불안 지수 계산."""
     logger.info(f"🔄 {target_date} 날짜 데이터 처리 시작")
-    process_start_time = datetime.datetime.now()
+    process_start_time = datetime.now()
     
     # 임시 수정 스크립트 경로
     temp_dir = Path("/tmp/emotion_scripts")
@@ -183,7 +192,7 @@ def process_date(target_date):
     
     # 스크립트 수정 시작
     logger.info(f"📝 {target_date}용 분석 스크립트 준비 중...")
-    script_mod_start = datetime.datetime.now()
+    script_mod_start = datetime.now()
     
     # GDELT 스크립트는 전체 기간 데이터에서 특정 날짜 필터링 로직 추가
     create_modified_gdelt_script(GDELT_FINBERT, gdelt_temp, target_date)
@@ -192,7 +201,7 @@ def process_date(target_date):
     create_modified_script(REDDIT_FINBERT, reddit_finbert_temp, target_date)
     create_modified_script(REDDIT_ROBERTA, reddit_roberta_temp, target_date)
     
-    script_mod_time = (datetime.datetime.now() - script_mod_start).total_seconds()
+    script_mod_time = (datetime.now() - script_mod_start).total_seconds()
     logger.info(f"✅ 스크립트 준비 완료 (소요 시간: {script_mod_time:.2f}초)")
     
     # 단계별 성공 여부 추적
@@ -205,14 +214,14 @@ def process_date(target_date):
     
     # 1. GDELT 데이터 분석 - 1/4 단계
     logger.info(f"[1/4] 🔍 {target_date} GDELT 데이터 분석 시작...")
-    step_start_time = datetime.datetime.now()
+    step_start_time = datetime.now()
     
     gdelt_success = run_script(
         str(gdelt_temp),
         f"GDELT {target_date} 분석"
     )
     
-    step_time = (datetime.datetime.now() - step_start_time).total_seconds()
+    step_time = (datetime.now() - step_start_time).total_seconds()
     steps_results["gdelt"] = gdelt_success
     
     if not gdelt_success:
@@ -228,14 +237,14 @@ def process_date(target_date):
     
     # 2. Reddit FinBERT 분석 - 2/4 단계
     logger.info(f"[2/4] 🔍 {target_date} Reddit FinBERT 분석 시작...")
-    step_start_time = datetime.datetime.now()
+    step_start_time = datetime.now()
     
     reddit_finbert_success = run_script(
         str(reddit_finbert_temp), 
         f"Reddit FinBERT {target_date} 분석"
     )
     
-    step_time = (datetime.datetime.now() - step_start_time).total_seconds()
+    step_time = (datetime.now() - step_start_time).total_seconds()
     steps_results["reddit_finbert"] = reddit_finbert_success
     
     if not reddit_finbert_success:
@@ -251,14 +260,14 @@ def process_date(target_date):
     
     # 3. Reddit RoBERTa 분석 - 3/4 단계
     logger.info(f"[3/4] 🔍 {target_date} Reddit RoBERTa 분석 시작...")
-    step_start_time = datetime.datetime.now()
+    step_start_time = datetime.now()
     
     reddit_roberta_success = run_script(
         str(reddit_roberta_temp),
         f"Reddit RoBERTa {target_date} 분석"
     )
     
-    step_time = (datetime.datetime.now() - step_start_time).total_seconds()
+    step_time = (datetime.now() - step_start_time).total_seconds()
     steps_results["reddit_roberta"] = reddit_roberta_success
     
     if not reddit_roberta_success:
@@ -274,7 +283,7 @@ def process_date(target_date):
     
     # 4. 불안 지수 계산 - 4/4 단계
     logger.info(f"[4/4] 📊 {target_date} 최종 불안 지수 계산 시작...")
-    step_start_time = datetime.datetime.now()
+    step_start_time = datetime.now()
     
     build_success = run_script(
         BUILD_INDEX,
@@ -282,7 +291,7 @@ def process_date(target_date):
         {"PYTHONPATH": PROJECT_ROOT}
     )
     
-    step_time = (datetime.datetime.now() - step_start_time).total_seconds()
+    step_time = (datetime.now() - step_start_time).total_seconds()
     steps_results["build_index"] = build_success
     
     if not build_success:
@@ -308,7 +317,7 @@ def process_date(target_date):
     all_files_exist = verify_output_files(target_date)
     
     # 전체 소요 시간 계산
-    total_time = (datetime.datetime.now() - process_start_time).total_seconds()
+    total_time = (datetime.now() - process_start_time).total_seconds()
     
     if all_files_exist:
         logger.info(f"🎉 {target_date} 모든 출력 파일이 GCS에 성공적으로 저장되었습니다.")
@@ -324,15 +333,15 @@ def process_date(target_date):
 
 def process_date_range(start_date, end_date):
     """날짜 범위에 대한 데이터 처리."""
-    start_dt = datetime.datetime.strptime(start_date, "%Y-%m-%d")
-    end_dt = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+    start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_date, "%Y-%m-%d")
     
     # 총 일수 계산
     total_days = (end_dt - start_dt).days + 1
     logger.info(f"🗓️ 총 {total_days}일 데이터 처리 시작: {start_date} ~ {end_date}")
     
     # 전체 실행 시작 시간
-    range_start_time = datetime.datetime.now()
+    range_start_time = datetime.now()
     
     # 결과 저장
     results = []
@@ -345,7 +354,7 @@ def process_date_range(start_date, end_date):
         
         # 진행 상황 표시
         progress = (day_index / total_days) * 100
-        elapsed = (datetime.datetime.now() - range_start_time).total_seconds()
+        elapsed = (datetime.now() - range_start_time).total_seconds()
         remaining = 0 if day_index == 0 else (elapsed / day_index) * (total_days - day_index)
         
         logger.info(f"\n{'='*50}")
@@ -355,9 +364,9 @@ def process_date_range(start_date, end_date):
         logger.info(f"{'='*50}\n")
         
         # 해당 날짜 처리
-        day_start_time = datetime.datetime.now()
+        day_start_time = datetime.now()
         success = process_date(date_str)
-        day_elapsed = (datetime.datetime.now() - day_start_time).total_seconds()
+        day_elapsed = (datetime.now() - day_start_time).total_seconds()
         
         # 결과 저장
         status = "✅ 성공" if success else "❌ 실패"
@@ -370,10 +379,10 @@ def process_date_range(start_date, end_date):
         logger.info(f"현재까지 {successful_days}/{day_index+1} 일 성공 (성공률: {(successful_days/(day_index+1))*100:.1f}%)")
         
         # 다음 날짜로 이동
-        current_dt += datetime.timedelta(days=1)
+        current_dt += timedelta(days=1)
     
     # 전체 실행 결과 요약
-    total_elapsed = (datetime.datetime.now() - range_start_time).total_seconds()
+    total_elapsed = (datetime.now() - range_start_time).total_seconds()
     success_rate = (successful_days / total_days) * 100
     
     logger.info("\n" + "="*60)
@@ -411,8 +420,8 @@ if __name__ == "__main__":
     
     # 날짜 형식 검증
     try:
-        start_dt = datetime.datetime.strptime(args.start, "%Y-%m-%d")
-        end_dt = datetime.datetime.strptime(args.end, "%Y-%m-%d")
+        start_dt = datetime.strptime(args.start, "%Y-%m-%d")
+        end_dt = datetime.strptime(args.end, "%Y-%m-%d")
         
         # 날짜 범위 유효성 검사
         if start_dt > end_dt:

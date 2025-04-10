@@ -1,8 +1,8 @@
+from datetime import datetime
 import os
 import json
 import pandas as pd
 from io import BytesIO
-from datetime import datetime
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 from google.cloud import storage
 import time

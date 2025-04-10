@@ -1,6 +1,7 @@
+from datetime import datetime, timedelta
 import os
 import json
-import datetime
+
 import logging
 import pandas as pd
 import praw
@@ -11,6 +12,14 @@ from dotenv import load_dotenv
 
 # ✅ 환경 변수 로드
 load_dotenv()
+
+# 로그 디렉토리 설정
+LOG_ROOT = "/home/hwangjeongmun691/logs"
+today = datetime.utcnow().strftime("%Y-%m-%d")
+LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+
+# 디렉토리 생성
+os.makedirs(LOG_DATE_DIR, exist_ok=True)
 
 # ✅ 설정
 SUBREDDITS = [
@@ -34,11 +43,11 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("reddit_full_collector.log"),
+        logging.FileHandler(f"{LOG_DATE_DIR}/reddit_fulltime_collector.log"),
         logging.StreamHandler()
     ]
 )
-logger = logging.getLogger("reddit_full_collector")
+logger = logging.getLogger("reddit_fulltime_collector")
 
 # ✅ Reddit API 초기화 (.env 파일에서 로드)
 reddit = praw.Reddit(
@@ -78,8 +87,8 @@ def save_to_gcs(df, subreddit, date_str):
 # ✅ 메인 실행 함수
 def run(start_str, end_str):
     # 날짜 범위 파싱
-    start_dt = datetime.datetime.strptime(start_str, "%Y-%m-%d")
-    end_dt = datetime.datetime.strptime(end_str, "%Y-%m-%d")
+    start_dt = datetime.strptime(start_str, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_str, "%Y-%m-%d")
     
     logger.info(f"🚀 Reddit 전체 수집 시작: {start_str} ~ {end_str}")
     logger.info(f"📋 총 {len(SUBREDDITS)}개 서브레딧 수집 예정")
@@ -90,13 +99,13 @@ def run(start_str, end_str):
     # 전체 진행 상황 추적
     total_subreddits = len(SUBREDDITS)
     total_posts_collected = 0
-    start_time = datetime.datetime.now()
+    start_time = datetime.now()
     subreddit_results = {}
     
     for idx, sub in enumerate(SUBREDDITS):
         # 서브레딧 진행률 표시
         progress = (idx / total_subreddits) * 100
-        elapsed = (datetime.datetime.now() - start_time).total_seconds()
+        elapsed = (datetime.now() - start_time).total_seconds()
         remaining = 0 if idx == 0 else (elapsed / idx) * (total_subreddits - idx)
         
         logger.info(f"🔄 전체 진행률: {progress:.1f}% ({idx+1}/{total_subreddits}) - "
@@ -104,7 +113,7 @@ def run(start_str, end_str):
         logger.info(f"📦 서브레딧 수집 시작: r/{sub} ({start_str} ~ {end_str})")
         
         posts = []
-        subreddit_start_time = datetime.datetime.now()
+        subreddit_start_time = datetime.now()
 
         try:
             # 수집 시간 필터 설정
@@ -143,7 +152,7 @@ def run(start_str, end_str):
                 # 100개마다 로그 추가 및 예상 시간 계산
                 if collected_count % 100 == 0 or collected_count == 1:
                     progress = (collected_count / POST_LIMIT) * 100
-                    elapsed_sub = (datetime.datetime.now() - subreddit_start_time).total_seconds()
+                    elapsed_sub = (datetime.now() - subreddit_start_time).total_seconds()
                     remaining_sub = 0 if collected_count == 0 else (elapsed_sub / collected_count) * (POST_LIMIT - collected_count)
                     
                     logger.info(f"  → 현재 {collected_count}/{POST_LIMIT}개 탐색 중... ({progress:.1f}%)")
@@ -151,7 +160,7 @@ def run(start_str, end_str):
                     logger.info(f"  → 날짜 범위에 맞는 게시물: {matched_count}개")
                 
                 # 날짜 범위 필터링
-                created_dt = datetime.datetime.utcfromtimestamp(submission.created_utc)
+                created_dt = datetime.utcfromtimestamp(submission.created_utc)
                 if start_dt <= created_dt <= end_dt:
                     posts.append({
                         "id": submission.id,
@@ -171,7 +180,7 @@ def run(start_str, end_str):
                 sleep(0.5)  # 요청 간 rate limit 방지
 
             # 서브레딧 수집 완료 상태 저장
-            subreddit_elapsed = (datetime.datetime.now() - subreddit_start_time).total_seconds()
+            subreddit_elapsed = (datetime.now() - subreddit_start_time).total_seconds()
             subreddit_results[sub] = {
                 "collected": matched_count,
                 "searched": collected_count,
@@ -197,7 +206,7 @@ def run(start_str, end_str):
         save_to_gcs(df, sub, date_range)
 
     # 전체 수집 결과 요약
-    total_elapsed = (datetime.datetime.now() - start_time).total_seconds()
+    total_elapsed = (datetime.now() - start_time).total_seconds()
     logger.info("\n" + "="*50)
     logger.info(f"📈 Reddit 수집 최종 결과:")
     logger.info(f"  • 수집 기간: {start_str} ~ {end_str}")
@@ -231,8 +240,8 @@ if __name__ == "__main__":
     
     # 날짜 형식 검증 (YYYY-MM-DD)
     try:
-        datetime.datetime.strptime(start, "%Y-%m-%d")
-        datetime.datetime.strptime(end, "%Y-%m-%d")
+        datetime.strptime(start, "%Y-%m-%d")
+        datetime.strptime(end, "%Y-%m-%d")
     except ValueError:
         print("오류: 날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식을 사용하세요.")
         sys.exit(1)

@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import json
 import time
@@ -5,7 +6,6 @@ import logging
 import sys
 import psutil
 from io import BytesIO
-from datetime import datetime
 from typing import List, Dict, Tuple
 from tqdm import tqdm
 

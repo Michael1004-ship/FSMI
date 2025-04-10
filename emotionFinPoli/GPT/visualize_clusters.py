@@ -1,10 +1,10 @@
+from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import json
 import umap
 import os
 from pathlib import Path
-from datetime import datetime
 import subprocess
 from collections import Counter
 import logging

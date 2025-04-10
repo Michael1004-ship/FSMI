@@ -1,25 +1,33 @@
+from datetime import datetime, timedelta
 # scripts/gdelt_full_collector.py
 import os
 import requests
 import zipfile
 import io
 import pandas as pd
-import datetime
+
 import logging
 import json
 from google.cloud import storage
 import sys
 
-# 로깅 설정
+# 로그 디렉토리 설정
+LOG_ROOT = "/home/hwangjeongmun691/logs"
+today = datetime.utcnow().strftime("%Y-%m-%d")
+LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+
+# 디렉토리 생성
+os.makedirs(LOG_DATE_DIR, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("gdelt_full_collector.log"),
+        logging.FileHandler(f"{LOG_DATE_DIR}/gdelt_fulltime_collector.log"),
         logging.StreamHandler()
     ]
 )
-logger = logging.getLogger("gdelt_full_collector")
+logger = logging.getLogger("gdelt_fulltime_collector")
 
 TOP_DOMAINS = [
     "nytimes.com", "wsj.com", "bloomberg.com", "cnbc.com", "cnn.com",
@@ -65,7 +73,7 @@ def get_urls_between(start_date, end_date):
             parts = line.strip().split()
             url = parts[2]
             timestamp = url.split("/")[-1].split(".")[0]
-            dt = datetime.datetime.strptime(timestamp, "%Y%m%d%H%M%S")
+            dt = datetime.strptime(timestamp, "%Y%m%d%H%M%S")
             if start_date <= dt <= end_date:
                 urls.append(url)
     logger.info(f"총 {len(urls)}개의 GKG URL 수집 예정")
@@ -109,12 +117,12 @@ def save_to_gcs(df, file_name):
     logger.info(f"✅ 저장 완료: gs://{BUCKET_NAME}/{file_name}")
 
 def run(start_str, end_str):
-    start_dt = datetime.datetime.strptime(start_str, "%Y-%m-%d")
-    end_dt = datetime.datetime.strptime(end_str, "%Y-%m-%d")
+    start_dt = datetime.strptime(start_str, "%Y-%m-%d")
+    end_dt = datetime.strptime(end_str, "%Y-%m-%d")
 
     # URL 수집 진행 상황 표시
     logger.info(f"🔎 {start_str}부터 {end_str}까지의 GDELT URL 수집 중...")
-    urls = get_urls_between(start_dt, end_dt + datetime.timedelta(days=1))
+    urls = get_urls_between(start_dt, end_dt + timedelta(days=1))
     logger.info(f"📋 총 {len(urls)}개의 GDELT URL 수집 완료")
     
     # 빈 상태 확인
@@ -124,7 +132,7 @@ def run(start_str, end_str):
         
     all_dfs = []
     processed_count = 0
-    start_time = datetime.datetime.now()
+    start_time = datetime.now()
     
     # 진행률 표시
     logger.info(f"⏳ GDELT 데이터 다운로드 및 분석 시작 ({len(urls)}개 파일)")
@@ -133,7 +141,7 @@ def run(start_str, end_str):
         # 주기적으로 진행 상황 보고
         processed_count = i + 1
         if processed_count % 10 == 0 or processed_count == 1 or processed_count == len(urls):
-            elapsed = (datetime.datetime.now() - start_time).total_seconds()
+            elapsed = (datetime.now() - start_time).total_seconds()
             progress = processed_count / len(urls) * 100
             remaining = elapsed / processed_count * (len(urls) - processed_count) if processed_count > 0 else 0
             
@@ -184,8 +192,8 @@ if __name__ == "__main__":
     
     # 날짜 형식 검증 (YYYY-MM-DD)
     try:
-        datetime.datetime.strptime(start, "%Y-%m-%d")
-        datetime.datetime.strptime(end, "%Y-%m-%d")
+        datetime.strptime(start, "%Y-%m-%d")
+        datetime.strptime(end, "%Y-%m-%d")
     except ValueError:
         print("오류: 날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식을 사용하세요.")
         sys.exit(1)

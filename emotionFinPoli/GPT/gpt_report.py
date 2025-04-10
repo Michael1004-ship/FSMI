@@ -1,7 +1,7 @@
+from datetime import datetime
 import json
 import openai
 import subprocess
-from datetime import datetime
 import os
 import time
 from dotenv import load_dotenv

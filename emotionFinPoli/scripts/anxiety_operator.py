@@ -1,7 +1,7 @@
+from datetime import datetime, timedelta
 # emotion_data_processor.py
 import subprocess
 import logging
-import datetime
 import time
 import os
 import sys
@@ -11,12 +11,20 @@ import psutil
 from google.cloud import storage
 import json
 
+# 로그 디렉토리 설정
+LOG_ROOT = "/home/hwangjeongmun691/logs"
+today = datetime.utcnow().strftime("%Y-%m-%d")
+LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+
+# 디렉토리 생성
+os.makedirs(LOG_DATE_DIR, exist_ok=True)
+
 # 상세 로깅 설정
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("emotion_data_processor_detailed.log"),
+        logging.FileHandler(f"{LOG_DATE_DIR}/anxiety_operator.log"),
         logging.StreamHandler()
     ]
 )
@@ -166,7 +174,7 @@ def run_script(script_path, description, args=None, retry=1):
 def main():
     start_time = time.time()
     logger.info("🚀 감정 데이터 처리 파이프라인 시작")
-    today = datetime.datetime.today().strftime("%Y-%m-%d")
+    today = datetime.today().strftime("%Y-%m-%d")
     
     # 시스템 환경 확인
     check_environment()

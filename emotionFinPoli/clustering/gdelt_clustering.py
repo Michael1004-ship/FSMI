@@ -1,7 +1,8 @@
+from datetime import datetime
 import os
 import json
 import time
-import datetime
+
 import logging
 import psutil
 import multiprocessing
@@ -31,8 +32,7 @@ CPU_CORES = max(1, multiprocessing.cpu_count() - 1)  # Leave 1 core free
 # ----------------------------
 # Logging Setup
 # ----------------------------
-import os
-from datetime import datetime
+# 중복 import 제거
 
 # 로그 디렉토리 설정
 LOG_ROOT = "/home/hwangjeongmun691/logs"
