@@ -1,10 +1,11 @@
+from datetime import datetime, timedelta
 # scripts/gdelt_realtime_collector.py
 import os
 import requests
 import zipfile
 import io
 import pandas as pd
-import datetime
+
 import logging
 import time
 import json
@@ -60,8 +61,9 @@ def generate_time_stamps(start_time, end_time):
     stamps = []
     current = start_time
     while current <= end_time:
+        current = current.replace(second=0)  # ✅ 초를 0으로 고정
         stamps.append(current.strftime("%Y%m%d%H%M%S"))
-        current += datetime.timedelta(minutes=15)
+        current += timedelta(minutes=15)
     return stamps
 
 # ✅ GDELT URL 생성
@@ -134,21 +136,24 @@ def save_accumulated_to_gcs(df, date_str):
 # ✅ 메인 실행
 
 def run():
-    now = datetime.utcnow()
+    # 시간대 고려 (1시간 전으로 조정)
+    now = datetime.utcnow() - timedelta(hours=1)
+    hour = now.hour
     date_str = now.strftime("%Y-%m-%d")
-    yesterday_str = (now - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    yesterday_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    # 마지막 수집 시간 불러오기
-    if os.path.exists(STATE_FILE):
-        with open(STATE_FILE, 'r') as f:
-            last_ts = datetime.datetime.strptime(f.read().strip(), "%Y%m%d%H%M%S")
+    if hour < 13:
+        # 오전 실행이면 → 전날 18:00부터 오늘 now까지
+        start = datetime.combine((now - timedelta(days=1)).date(), datetime.min.time()) + timedelta(hours=18)
     else:
-        last_ts = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        # 오후 실행이면 → 오늘 11:30부터 now까지
+        start = datetime.combine(now.date(), datetime.min.time()) + timedelta(hours=11, minutes=30)
 
-    logger.info(f"🔁 수집 범위: {last_ts} ~ {now}")
+    # ✅ 여기서 start ~ now까지 15분 단위 수집
+    logger.info(f"🔁 수집 범위: {start} ~ {now}")
 
     # 시간대 리스트 생성
-    stamps = generate_time_stamps(last_ts, now)
+    stamps = generate_time_stamps(start, now)
 
     all_dfs = []
     for stamp in stamps:
@@ -195,7 +200,7 @@ def run():
                 # 최근 3일 내 데이터 찾기
                 found_data = False
                 for i in range(2, 7):
-                    check_date = (now - datetime.timedelta(days=i)).strftime("%Y-%m-%d")
+                    check_date = (now - timedelta(days=i)).strftime("%Y-%m-%d")
                     check_blob = storage_client.bucket(BUCKET_NAME).blob(f"news/gdelt/{check_date}/accumulated.json")
                     
                     if check_blob.exists():

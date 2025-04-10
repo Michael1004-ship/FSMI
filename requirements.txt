@@ -7,6 +7,9 @@ numpy==1.26.4
 
 # Visualization
 plotly==5.18.0
+matplotlib==3.8.3
+seaborn==0.13.1
+umap-learn==0.5.5
 
 # Machine Learning
 scikit-learn==1.3.2
@@ -29,6 +32,13 @@ psutil==5.9.8
 
 # Reddit API
 praw==7.7.1
+
+# Web Scraping
+newspaper3k==0.2.8
+lxml==4.9.3  # newspaper3k의 의존성
+
+# Transformers
+transformers==4.36.0
 
 # Utility
 requests==2.31.0

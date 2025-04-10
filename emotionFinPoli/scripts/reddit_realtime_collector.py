@@ -1,7 +1,8 @@
+from datetime import datetime, timedelta, time
 # scripts/reddit_realtime_collector.py
 import os
 import json
-import datetime
+
 import logging
 import pandas as pd
 import praw
@@ -22,7 +23,7 @@ SUBREDDITS = [
 
 BUCKET_NAME = "emotion-raw-data"
 STATE_FILE = "reddit_last_run.txt"
-POST_LIMIT = 100  # 각 서브레딧당 최대 수집 수
+POST_LIMIT = 1000  # 각 서브레딧당 최대 수집 수 (기존 100 → 1000)
 
 # ✅ 로깅 설정
 # 로그 디렉토리 설정
@@ -72,20 +73,40 @@ def save_to_gcs(df, subreddit, date_str):
 # ✅ 메인 실행
 
 def run():
+    # 현재 시간과 시간대 설정
     now = datetime.utcnow()
+    hour = now.hour
     date_str = now.strftime("%Y-%m-%d")
-    logger.info(f"Reddit 수집 시작: {date_str}")
+    
+    if hour < 13:
+        # 오전 수집 → 전날 19:00 ~ 오늘 12:30
+        start = datetime.combine((now - timedelta(days=1)).date(), time(hour=19))
+        end = datetime.combine(now.date(), time(hour=12, minute=30))
+    else:
+        # 오후 수집 → 오늘 12:30 ~ 오늘 19:00
+        start = datetime.combine(now.date(), time(hour=12, minute=30))
+        end = datetime.combine(now.date(), time(hour=19))
+    # ✅ 딱 이 두 구간만 매일 반복 수집되도록 설계됨
+    # ✅ GDELT처럼 "now -1시간" 보정 없음
+    # ✅ 시간 누락이나 중복 없이, 깔끔하게 "2회 수집 = 하루 전체 수집" 완성
+    
+    logger.info(f"Reddit 수집 시작: {date_str}, 시간 범위: {start} ~ {end}")
 
     for sub in SUBREDDITS:
         logger.info(f"📥 서브레딧: r/{sub}")
         posts = []
 
         for submission in reddit.subreddit(sub).new(limit=POST_LIMIT):
+            # 🔁 수집 시간 필터
+            created_time = datetime.utcfromtimestamp(submission.created_utc)
+            if not (start <= created_time <= end):
+                continue
+                
             posts.append({
                 "id": submission.id,
                 "title": submission.title,
                 "selftext": submission.selftext,
-                "created_utc": datetime.datetime.utcfromtimestamp(submission.created_utc).isoformat(),
+                "created_utc": created_time.isoformat(),
                 "score": submission.score
             })
 

@@ -1,11 +1,12 @@
+from datetime import datetime
 import json
-import openai
 import subprocess
 import os
-from datetime import datetime
+import time
 from pathlib import Path
 from dotenv import load_dotenv
 import logging
+from openai import OpenAI
 
 # 로그 디렉토리 설정
 LOG_ROOT = "/home/hwangjeongmun691/logs"
@@ -27,12 +28,8 @@ logger = logging.getLogger("gpt_labeling")
 
 load_dotenv()  # .env 파일 자동 로드
 
-# ✅ API 키
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
 # ✅ 오늘 날짜
-DATE = datetime.utcnow().strftime("%Y-%m-%d")  # 이 줄을 주석 처리
-# DATE = "2025-04-08"  # 고정된 날짜로 설정
+DATE = datetime.utcnow().strftime("%Y-%m-%d")
 
 # ✅ 소스 종류
 SOURCES = ["news", "reddit"]
@@ -47,26 +44,43 @@ def label_cluster(cluster_id, sentences):
         {"role": "system", "content": "Read the following sentences and provide ONE single emotion label in English. Respond with only one word. Examples: anxiety, anticipation, anger, cynicism, etc."},
         {"role": "user", "content": prompt}
     ]
-    try:
-        # API 키 확인 및 클라이언트 생성
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            logger.error(f"❌ API 키가 설정되지 않았습니다.")
-            return "API 키 오류"
+    
+    # 재시도 설정
+    max_retries = 5
+    retry_delay = 2  # 초기 지연 시간 (초)
+    
+    for attempt in range(max_retries):
+        try:
+            # API 키 확인
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                logger.error(f"❌ API 키가 설정되지 않았습니다.")
+                return "API 키 오류"
             
-        client = openai.OpenAI(api_key=api_key)
-        # "gpt-4"에서 "gpt-4o"로 변경
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            temperature=0.3
-        )
-        label = response.choices[0].message.content.strip()
-        logger.info(f"[cluster {cluster_id}] → {label}")
-        return label
-    except Exception as e:
-        logger.error(f"❌ Error labeling cluster {cluster_id}: {e}")
-        return "Unknown"
+            # SDK 사용
+            client = OpenAI(api_key=api_key)
+            
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                temperature=0.3
+            )
+            
+            # SDK 응답 객체는 ChatCompletion 형식입니다
+            label = response.choices[0].message.content.strip()
+            logger.info(f"[cluster {cluster_id}] → {label}")
+            return label
+                
+        except Exception as e:
+            logger.error(f"❌ Error labeling cluster {cluster_id}: {e}")
+            
+            # 지수 백오프로 대기 후 재시도
+            wait_time = retry_delay * (2 ** attempt)
+            logger.info(f"⏳ {wait_time}초 후 재시도 ({attempt+1}/{max_retries})...")
+            time.sleep(wait_time)
+            continue
+            
+    return "Rate Limit"  # 모든 재시도 실패
 
 # ✅ 단일 소스 처리 함수
 def process_source(source):
@@ -108,6 +122,7 @@ def process_source(source):
         if texts:  # 빈 리스트가 아닌 경우만 처리
             label = label_cluster(cluster_id, texts[:5])  # 최대 5개 텍스트만 사용
             cluster_labels[f"cluster_{cluster_id}"] = label
+            time.sleep(3)  # API 요청 사이에 3초 지연 추가
 
     with open(local_output, "w", encoding="utf-8") as f:
         json.dump(cluster_labels, f, ensure_ascii=False, indent=2)

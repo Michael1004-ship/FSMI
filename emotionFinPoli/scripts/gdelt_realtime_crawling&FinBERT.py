@@ -1,13 +1,14 @@
+from datetime import datetime
 import os
 import re
 import time
 import json
 import pandas as pd
 from io import BytesIO
-from datetime import datetime
 import sys
 import subprocess
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from newspaper import Article
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
@@ -78,7 +79,6 @@ print(f"🔗 총 {len(urls)}개의 기사 URL 수집됨")
 
 # 로깅 설정
 import os
-from datetime import datetime
 
 # 로그 디렉토리 설정
 LOG_ROOT = "/home/hwangjeongmun691/logs"
@@ -124,11 +124,12 @@ print("\n크롤링 시작...")
 results = []   # 평균 계산용 (negative만)
 details = []   # 전체 감정 분석 결과 저장용
 
-for i, url in enumerate(urls, 1):
-    print(f"\n[{i}/{len(urls)}] URL 처리 중...")
-    text = fetch_article_text(url)
-    time.sleep(SLEEP_SECONDS)
+# 크롤링 부분만 병렬화 (10개 스레드 제한)
+with ThreadPoolExecutor(max_workers=10) as executor:
+    results = list(executor.map(fetch_article_text, urls))
 
+# 이후 분석은 순차적으로
+for i, text in enumerate(results):
     if text:
         try:
             result = finbert(text[:512])[0]
@@ -139,10 +140,10 @@ for i, url in enumerate(urls, 1):
                 results.append(result["score"])
             
             # 전체 기사 저장용: 무조건 저장
-            details.append([url, result["label"], result["score"]])
+            details.append([urls[i], result["label"], result["score"]])
         except Exception as e:
             logger.error(f"오류 발생: {e}")
-            failed_urls.append(url)  # FinBERT 분석 실패한 URL도 추가
+            failed_urls.append(urls[i])  # FinBERT 분석 실패한 URL도 추가
             continue
 
 # ----------------------------
