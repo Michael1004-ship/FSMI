@@ -73,13 +73,39 @@ def load_and_process(bucket_name, blob_path, source: str):
     content = blob.download_as_text()
     df = pd.read_csv(StringIO(content), header=None)
 
-    ratio, avg_score, anxiety_score = compute_anxiety_score(df)
-    std, scores = compute_std(df, source)
-    z_scores = (scores - avg_score) / std
-    z_scores = np.clip(z_scores, -5, 5)  # ✅ 클리핑 적용: Z-score가 -5~5 사이로 제한
-    z_scores.name = source + "_z"
+    if source == "news":
+        # ✅ 뉴스는 비중 * 강도 기반으로 anxiety_score 시계열 생성
+        ratio = float(df.iloc[1, 1])
+        avg_score = float(df.iloc[1, 2])
+        logger.info(f"[NEWS] Negative Ratio: {ratio}, Avg Score: {avg_score}")
 
-    return ratio, avg_score, std, anxiety_score, z_scores
+        # 뉴스 시계열 점수는 4번째 행부터 시작 (부정 문장들의 감정 점수)
+        scores = df.iloc[4:, 2].astype(float)
+        # anxiety_score 시계열: 비중 * 점수^1.5
+        anxiety_scores = ratio * (scores ** 1.5)
+        mean_anx = anxiety_scores.mean()
+        std_anx = anxiety_scores.std()
+        z_scores = (anxiety_scores - mean_anx) / std_anx
+        z_scores = np.clip(z_scores, -3, 3)  # ✅ 클리핑
+        z_scores = np.exp(z_scores)         # ✅ 지수화
+        z_scores.name = "news_z"
+
+        return ratio, avg_score, std_anx, anxiety_scores.mean(), z_scores
+    else:
+        # Reddit 데이터 처리 (기존 방식 유지)
+        ratio = float(df.iloc[1, 1])  # negative_ratio
+        avg_score = float(df.iloc[1, 2])  # average_negative_score
+        logger.info(f"[REDDIT] {source} - Ratio: {ratio}, Avg Score: {avg_score}")
+        
+        scores = df.iloc[4:, 1].astype(float)  # 레딧은 2열 (index 1)
+        std = scores.std()
+        z_scores = (scores - avg_score) / std
+        z_scores = np.clip(z_scores, -5, 5)  # ✅ 클리핑
+        z_scores.name = source + "_z"
+        
+        anxiety_score = ratio * (avg_score ** 1.5)  # 비선형 처리
+        
+        return ratio, avg_score, std, anxiety_score, z_scores
 
 
 def upload_to_gcs(bucket_name, destination_blob_path, local_file_path):
