@@ -196,17 +196,18 @@ if page == "Dashboard":
                 st.latex(r"News\_Component = \exp(Z\_clipped)")
 
                 st.markdown("#### 💬 Step 2: Reddit Component")
-                st.markdown("1. Get Z-scores from FinBERT and RoBERTa models:")
-                st.latex(r"FinBERT\_Z_i,\quad RoBERTa\_Z_i")
+                st.markdown("1. Calculate anxiety index for each Reddit model (same method as news):")
+                st.markdown("   - For each model (FinBERT & RoBERTa), compute raw anxiety score")
+                st.latex(r"Reddit\_Anxiety_i = Ratio \times (Avg\_Negative\_Score_i)^{1.5}")
+                st.markdown("   - Convert to Z-scores (same standardization process as news)")
+                st.latex(r"FinBERT\_Z_i = \frac{FinBERT\_Anxiety_i - \mu}{\sigma}")
+                st.latex(r"RoBERTa\_Z_i = \frac{RoBERTa\_Anxiety_i - \mu}{\sigma}")
 
                 st.markdown("2. Combine and exponentiate:")
                 st.latex(r"Reddit\_Z = \exp\left(\frac{FinBERT\_Z_i + RoBERTa\_Z_i}{2}\right)")
 
                 st.markdown("3. Clip:")
                 st.latex(r"Reddit\_Z\_clipped = \text{clip}(Reddit\_Z, -3, 3)")
-
-                st.markdown("#### 🧩 Step 3: Final Index")
-                st.latex(r"Total\_Anxiety_i = \exp\left(0.3 \cdot News\_Component + 0.7 \cdot Reddit\_Z\_clipped\right)")
 
                 st.caption("Note: `Ratio`, `Avg Score`, and `Std` come from each day's summary statistics.")
             
