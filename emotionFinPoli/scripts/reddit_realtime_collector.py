@@ -17,9 +17,7 @@ SUBREDDITS = [
     "economics", "economy", "MacroEconomics", "EconMonitor",
     # 금융 관련
     "finance", "investing", "financialindependence", "personalfinance",
-    "wallstreetbets", "stocks", "StockMarket", "dividends",
-    # 감정 기반 흐름
-    "anxiety", "depression", "offmychest"
+    "wallstreetbets", "stocks", "StockMarket", "dividends"
 ]
 
 BUCKET_NAME = "emotion-raw-data"

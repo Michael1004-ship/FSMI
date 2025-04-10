@@ -163,9 +163,6 @@ if page == "Dashboard":
         - r/finance, r/investing, r/financialindependence, r/personalfinance
         - r/wallstreetbets, r/stocks, r/StockMarket, r/dividends
         
-        **Emotion & Sentiment Related:**
-        - r/anxiety, r/depression, r/offmychest
-        
         All data is analyzed using natural language processing models to extract sentiment patterns and compute the anxiety index.
         """)
 
@@ -300,9 +297,6 @@ elif page == "Time Series":
         - r/economics, r/economy, r/MacroEconomics, r/EconMonitor
         - r/finance, r/investing, r/financialindependence, r/personalfinance
         - r/wallstreetbets, r/stocks, r/StockMarket, r/dividends
-        
-        **Emotion & Sentiment Related:**
-        - r/anxiety, r/depression, r/offmychest
         
         All data is analyzed using natural language processing models to extract sentiment patterns and compute the anxiety index.
         """)

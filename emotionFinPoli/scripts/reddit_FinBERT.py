@@ -55,9 +55,9 @@ bucket_index = client.bucket(BUCKET_INDEX)
 # ----------------------------
 
 subreddits = [
-    "anxiety", "depression", "dividends", "EconMonitor", "economics",
+    "dividends", "EconMonitor", "economics",
     "economy", "finance", "financialindependence", "investing", "MacroEconomics",
-    "offmychest", "personalfinance", "StockMarket", "stocks", "wallstreetbets"
+    "personalfinance", "StockMarket", "stocks", "wallstreetbets"
 ]
 
 # ----------------------------
