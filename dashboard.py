@@ -268,6 +268,24 @@ if page == "Dashboard":
         appendix = gcs.load_text_file(selected_date, "gpt_report_appendix.txt")
         st.text_area("Appendix", value=appendix, height=500, key="appendix")
 
+    with st.expander("ℹ️ What are 'Ratio', 'Avg Score', and 'Std'?"):
+        st.markdown("""
+### 📘 Component Terminology
+
+These three components help explain how the **Anxiety Index** is calculated for the following sources:
+- `News`
+- `Reddit_FinBERT`
+- `Reddit_RoBERTa`
+
+---
+
+| Term | Meaning | Applies to |
+|------|---------|------------|
+| **Ratio** | The proportion of documents classified as **negative** out of the total (e.g., 0.40 = 40% negative). | News & Reddit |
+| **Avg Score** | The average **negative sentiment score** of the documents identified as negative only. A higher score means stronger negative tone. | News & Reddit |
+| **Std** (Standard Deviation) | The degree of variation in the individual negative sentiment scores. A higher Std implies more emotional volatility. | News & Reddit |
+""")
+
 elif page == "Time Series":
     st.title("📈 Anxiety Index Time Series")
 
