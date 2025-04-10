@@ -181,63 +181,34 @@ if page == "Dashboard":
             
             # 수식 설명 접을 수 있는 섹션 수정
             with st.expander("🧠 How is the Anxiety Index calculated?"):
-                st.markdown(r"""
-### 🧮 Full Calculation Process
+                st.markdown("### 🧮 Full Calculation Process")
+                st.markdown("The **Anxiety Index** is calculated from financial news and Reddit in three steps:")
 
-The **Anxiety Index** is a composite score derived from both financial news and social media (Reddit) sentiment. Here's how it's calculated step by step:
+                st.markdown("#### 📰 Step 1: News Component")
+                st.markdown("1. Compute raw news anxiety index (volume × intensity):")
+                st.latex(r"News\_Anxiety_i = Ratio \times (Avg\_Negative\_Score_i)^{1.5}")
 
----
+                st.markdown("2. Convert to Z-score:")
+                st.latex(r"Z_i = \frac{News\_Anxiety_i - \mu}{\sigma}")
 
-#### 📰 Step 1: News Component (Based on Negative Volume and Intensity)
+                st.markdown("3. Clip and exponentiate:")
+                st.latex(r"Z\_clipped = \text{clip}(Z_i, -3, 3)")
+                st.latex(r"News\_Component = \exp(Z\_clipped)")
 
-1. **Calculate the raw anxiety value** from news:
-\[
-\text{News\_Anxiety}_i = \text{Negative\_Ratio} \times \left( \text{Average\_Negative\_Score}_i \right)^{1.5}
-\]
+                st.markdown("#### 💬 Step 2: Reddit Component")
+                st.markdown("1. Get Z-scores from FinBERT and RoBERTa models:")
+                st.latex(r"FinBERT\_Z_i,\quad RoBERTa\_Z_i")
 
-2. **Standardize** it using Z-score:
-\[
-\text{News\_Z}_i = \frac{\text{News\_Anxiety}_i - \mu}{\sigma}
-\]
+                st.markdown("2. Combine and exponentiate:")
+                st.latex(r"Reddit\_Z = \exp\left(\frac{FinBERT\_Z_i + RoBERTa\_Z_i}{2}\right)")
 
-3. **Clip to range [-3, 3]**, then apply exponential scaling:
-\[
-\text{News\_Z\_clipped}_i = \text{clip}(\text{News\_Z}_i, -3, 3)
-\quad \Rightarrow \quad
-\text{News\_Component}_i = \exp(\text{News\_Z\_clipped}_i)
-\]
+                st.markdown("3. Clip:")
+                st.latex(r"Reddit\_Z\_clipped = \text{clip}(Reddit\_Z, -3, 3)")
 
----
+                st.markdown("#### 🧩 Step 3: Final Index")
+                st.latex(r"Total\_Anxiety_i = \exp\left(0.3 \cdot News\_Component + 0.7 \cdot Reddit\_Z\_clipped\right)")
 
-#### 💬 Step 2: Reddit Component (Two Sentiment Models)
-
-1. **Get Z-scores** from two models:
-   - `FinBERT_Z_i` = Z-score of financial sentiment
-   - `RoBERTa_Z_i` = Z-score of general sentiment
-
-2. **Average and exponentiate**:
-\[
-\text{Reddit\_Z}_i = \exp\left( \frac{\text{FinBERT\_Z}_i + \text{RoBERTa\_Z}_i}{2} \right)
-\]
-
-3. **Clip to range [-3, 3]**:
-\[
-\text{Reddit\_Z\_clipped}_i = \text{clip}(\text{Reddit\_Z}_i, -3, 3)
-\]
-
----
-
-#### 🧩 Step 3: Final Anxiety Index
-
-Combine News and Reddit components with weights (30% news, 70% Reddit):
-
-\[
-\text{Total\_Anxiety}_i = \exp\left( 0.3 \cdot \text{News\_Component}_i + 0.7 \cdot \text{Reddit\_Z\_clipped}_i \right)
-\]
-
-> - `exp(...)` amplifies sharp increases in public fear
-> - The index is updated daily (or more frequently), and represents **market-wide emotional volatility**
-""")
+                st.caption("Note: `Ratio`, `Avg Score`, and `Std` come from each day's summary statistics.")
             
             st.markdown("---")
         
@@ -323,7 +294,7 @@ These three components help explain how the **Anxiety Index** is calculated for 
         st.text_area("Appendix", value=appendix, height=500, key="appendix")
 
 elif page == "Time Series":
-    st.title("�� Anxiety Index Time Series")
+    st.title("Anxiety Index Time Series")
 
     # Note about time zone and market hours
     st.caption("Note: All times shown are in UTC. This dashboard reflects snapshots of sentiment around key US market hours.")
