@@ -179,30 +179,65 @@ if page == "Dashboard":
             st.markdown("## 📈 Total Anxiety Index")
             st.markdown(f"<h1 style='text-align: center; color: #FF4B4B;'>{total_score:.2f}</h1>", unsafe_allow_html=True)
             
-            # 수식 설명 접을 수 있는 섹션
-            with st.expander("How is the Anxiety Index calculated?"):
+            # 수식 설명 접을 수 있는 섹션 수정
+            with st.expander("🧠 How is the Anxiety Index calculated?"):
                 st.markdown(r"""
-                The Total Anxiety Index is calculated using the following steps:
-                
-                1. **News Z-scores**: Standardized news sentiment scores, clipped to range [-3, 3]
-                2. **Reddit Z-scores**: Combined from two models:
-                   - Reddit FinBERT: Financial sentiment analysis
-                   - Reddit RoBERTa: General sentiment analysis
-                
-                **Mathematical Formula**:
-                
-                Reddit combined Z-scores:
-                $$\text{Reddit\_Z} = \exp\left(\frac{\text{FinBERT\_Z} + \text{RoBERTa\_Z}}{2}\right)$$
-                
-                Clipping:
-                $$\text{News\_Z\_clipped} = \text{clip}(\text{News\_Z}, -3, 3)$$
-                $$\text{Reddit\_Z\_clipped} = \text{clip}(\text{Reddit\_Z}, -3, 3)$$
-                
-                Final Anxiety Index:
-                $$\text{Total\_Anxiety} = \exp(0.3 \times \text{News\_Z\_clipped} + 0.7 \times \text{Reddit\_Z\_clipped})$$
-                
-                *Note: More weight (70%) is given to social media sentiment vs news (30%)*
-                """)
+### 🧮 Full Calculation Process
+
+The **Anxiety Index** is a composite score derived from both financial news and social media (Reddit) sentiment. Here's how it's calculated step by step:
+
+---
+
+#### 📰 Step 1: News Component (Based on Negative Volume and Intensity)
+
+1. **Calculate the raw anxiety value** from news:
+\[
+\text{News\_Anxiety}_i = \text{Negative\_Ratio} \times \left( \text{Average\_Negative\_Score}_i \right)^{1.5}
+\]
+
+2. **Standardize** it using Z-score:
+\[
+\text{News\_Z}_i = \frac{\text{News\_Anxiety}_i - \mu}{\sigma}
+\]
+
+3. **Clip to range [-3, 3]**, then apply exponential scaling:
+\[
+\text{News\_Z\_clipped}_i = \text{clip}(\text{News\_Z}_i, -3, 3)
+\quad \Rightarrow \quad
+\text{News\_Component}_i = \exp(\text{News\_Z\_clipped}_i)
+\]
+
+---
+
+#### 💬 Step 2: Reddit Component (Two Sentiment Models)
+
+1. **Get Z-scores** from two models:
+   - `FinBERT_Z_i` = Z-score of financial sentiment
+   - `RoBERTa_Z_i` = Z-score of general sentiment
+
+2. **Average and exponentiate**:
+\[
+\text{Reddit\_Z}_i = \exp\left( \frac{\text{FinBERT\_Z}_i + \text{RoBERTa\_Z}_i}{2} \right)
+\]
+
+3. **Clip to range [-3, 3]**:
+\[
+\text{Reddit\_Z\_clipped}_i = \text{clip}(\text{Reddit\_Z}_i, -3, 3)
+\]
+
+---
+
+#### 🧩 Step 3: Final Anxiety Index
+
+Combine News and Reddit components with weights (30% news, 70% Reddit):
+
+\[
+\text{Total\_Anxiety}_i = \exp\left( 0.3 \cdot \text{News\_Component}_i + 0.7 \cdot \text{Reddit\_Z\_clipped}_i \right)
+\]
+
+> - `exp(...)` amplifies sharp increases in public fear
+> - The index is updated daily (or more frequently), and represents **market-wide emotional volatility**
+""")
             
             st.markdown("---")
         
@@ -236,6 +271,25 @@ if page == "Dashboard":
         # 추가 옵션: 원본 데이터 표시
         if st.checkbox("Show all components"):
             st.dataframe(df_index)
+            
+            # 용어 설명 부분을 여기로 이동
+            with st.expander("ℹ️ What are 'Ratio', 'Avg Score', and 'Std'?"):
+                st.markdown("""
+### 📘 Component Terminology
+
+These three components help explain how the **Anxiety Index** is calculated for the following sources:
+- `News`
+- `Reddit_FinBERT`
+- `Reddit_RoBERTa`
+
+---
+
+| Term | Meaning | Applies to |
+|------|---------|------------|
+| **Ratio** | The proportion of documents classified as **negative** out of the total (e.g., 0.40 = 40% negative). | News & Reddit |
+| **Avg Score** | The average **negative sentiment score** of the documents identified as negative only. A higher score means stronger negative tone. | News & Reddit |
+| **Std** (Standard Deviation) | The degree of variation in the individual negative sentiment scores. A higher Std implies more emotional volatility. | News & Reddit |
+""")
 
     else:
         st.warning("Anxiety index not available for this date.")
@@ -268,26 +322,8 @@ if page == "Dashboard":
         appendix = gcs.load_text_file(selected_date, "gpt_report_appendix.txt")
         st.text_area("Appendix", value=appendix, height=500, key="appendix")
 
-    with st.expander("ℹ️ What are 'Ratio', 'Avg Score', and 'Std'?"):
-        st.markdown("""
-### 📘 Component Terminology
-
-These three components help explain how the **Anxiety Index** is calculated for the following sources:
-- `News`
-- `Reddit_FinBERT`
-- `Reddit_RoBERTa`
-
----
-
-| Term | Meaning | Applies to |
-|------|---------|------------|
-| **Ratio** | The proportion of documents classified as **negative** out of the total (e.g., 0.40 = 40% negative). | News & Reddit |
-| **Avg Score** | The average **negative sentiment score** of the documents identified as negative only. A higher score means stronger negative tone. | News & Reddit |
-| **Std** (Standard Deviation) | The degree of variation in the individual negative sentiment scores. A higher Std implies more emotional volatility. | News & Reddit |
-""")
-
 elif page == "Time Series":
-    st.title("📈 Anxiety Index Time Series")
+    st.title("�� Anxiety Index Time Series")
 
     # Note about time zone and market hours
     st.caption("Note: All times shown are in UTC. This dashboard reflects snapshots of sentiment around key US market hours.")
