@@ -25,11 +25,19 @@ STATE_FILE = "reddit_last_run.txt"
 POST_LIMIT = 100  # 각 서브레딧당 최대 수집 수
 
 # ✅ 로깅 설정
+# 로그 디렉토리 설정
+LOG_ROOT = "/home/hwangjeongmun691/logs"
+today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+
+# 디렉토리 생성
+os.makedirs(LOG_DATE_DIR, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("reddit_collector.log"),
+        logging.FileHandler(f"{LOG_DATE_DIR}/reddit_collector.log"),
         logging.StreamHandler()
     ]
 )

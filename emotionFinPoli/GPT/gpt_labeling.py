@@ -5,8 +5,27 @@ import os
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()  # .env 파일 자동 로드
+import logging
 
+# 로그 디렉토리 설정
+LOG_ROOT = "/home/hwangjeongmun691/logs"
+today = datetime.utcnow().strftime("%Y-%m-%d")
+LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+
+# 디렉토리 생성
+os.makedirs(LOG_DATE_DIR, exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(f"{LOG_DATE_DIR}/gpt_labeling.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger("gpt_labeling")
+
+load_dotenv()  # .env 파일 자동 로드
 
 # ✅ API 키
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -32,7 +51,7 @@ def label_cluster(cluster_id, sentences):
         # API 키 확인 및 클라이언트 생성
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            print(f"❌ API 키가 설정되지 않았습니다.")
+            logger.error(f"❌ API 키가 설정되지 않았습니다.")
             return "API 키 오류"
             
         client = openai.OpenAI(api_key=api_key)
@@ -43,15 +62,15 @@ def label_cluster(cluster_id, sentences):
             temperature=0.3
         )
         label = response.choices[0].message.content.strip()
-        print(f"[cluster {cluster_id}] → {label}")
+        logger.info(f"[cluster {cluster_id}] → {label}")
         return label
     except Exception as e:
-        print(f"❌ Error labeling cluster {cluster_id}: {e}")
+        logger.error(f"❌ Error labeling cluster {cluster_id}: {e}")
         return "Unknown"
 
 # ✅ 단일 소스 처리 함수
 def process_source(source):
-    print(f"\n📦 Processing: {source}")
+    logger.info(f"\n📦 Processing: {source}")
     base_gcs_path = f"gs://{GCS_BUCKET}/{source}/{DATE}/"
 
     gcs_input = base_gcs_path + "cluster_representative_texts.json"
@@ -62,9 +81,9 @@ def process_source(source):
 
     try:
         subprocess.run(["gsutil", "cp", gcs_input, str(local_input)], check=True)
-        print(f"✅ 다운로드 완료: {gcs_input}")
+        logger.info(f"✅ 다운로드 완료: {gcs_input}")
     except subprocess.CalledProcessError:
-        print(f"❌ 파일 없음 또는 다운로드 실패: {gcs_input}")
+        logger.error(f"❌ 파일 없음 또는 다운로드 실패: {gcs_input}")
         return
 
     with open(local_input, "r", encoding="utf-8") as f:
@@ -94,7 +113,7 @@ def process_source(source):
         json.dump(cluster_labels, f, ensure_ascii=False, indent=2)
 
     subprocess.run(["gsutil", "cp", str(local_output), gcs_output], check=True)
-    print(f"✅ GCS 업로드 완료: {gcs_output}")
+    logger.info(f"✅ GCS 업로드 완료: {gcs_output}")
 
 # ✅ 메인 실행
 def main():

@@ -5,6 +5,26 @@ import argparse
 from pathlib import Path
 import datetime
 from io import StringIO
+import logging
+import os
+
+# 로그 디렉토리 설정
+LOG_ROOT = "/home/hwangjeongmun691/logs"
+today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+
+# 디렉토리 생성
+os.makedirs(LOG_DATE_DIR, exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(f"{LOG_DATE_DIR}/build_anxiety_index.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger("build_anxiety_index")
 
 
 def compute_anxiety_score(df):
@@ -17,7 +37,7 @@ def compute_anxiety_score(df):
     """
     ratio = float(df.iloc[1, 1])  # negative_ratio
     avg_score = float(df.iloc[1, 2])  # average_negative_score
-    print(f"Negative Ratio: {ratio}, Average Negative Score: {avg_score}")  # 디버깅용 출력
+    logger.info(f"Negative Ratio: {ratio}, Average Negative Score: {avg_score}")  # 디버깅용 출력
     anxiety_score = ratio * (avg_score ** 1.5)  # 비선형 처리
     return ratio, avg_score, anxiety_score
 
@@ -73,7 +93,7 @@ def upload_to_gcs(bucket_name, destination_blob_path, local_file_path):
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_path)
     blob.upload_from_filename(local_file_path)
-    print(f"\u2601\ufe0f Uploaded to GCS: gs://{bucket_name}/{destination_blob_path}")
+    logger.info(f"⛅ Uploaded to GCS: gs://{bucket_name}/{destination_blob_path}")
 
 
 def check_if_already_processed(bucket_name, destination_blob_path):
@@ -97,8 +117,8 @@ def build_anxiety_index(date_str):
     
     # 이미 처리된 파일인지 확인하고 로그만 출력
     if check_if_already_processed(bucket_name, destination_blob_path):
-        print(f"⚠️ 해당 날짜({date_str})의 지수가 이미 존재합니다. 파일을 덮어씁니다.")
-        print(f"기존 파일: gs://{bucket_name}/{destination_blob_path}")
+        logger.warning(f"⚠️ 해당 날짜({date_str})의 지수가 이미 존재합니다. 파일을 덮어씁니다.")
+        logger.info(f"기존 파일: gs://{bucket_name}/{destination_blob_path}")
     
     # 나머지 처리 계속 진행
     news_blob_path = f"news/{date_str}/news_anxiety_index.csv"
@@ -140,7 +160,7 @@ def build_anxiety_index(date_str):
     
     final_df.to_csv(output_file, index=False)
 
-    print(f"\u2705 Saved locally to: {output_file}")
+    logger.info(f"✅ Saved locally to: {output_file}")
 
     # GCS에 업로드
     upload_to_gcs(bucket_name, destination_blob_path, str(output_file))
@@ -153,5 +173,5 @@ if __name__ == "__main__":
     parser.add_argument("--date", default=today, help=f"Date folder in format YYYY-MM-DD (default: today {today})")
     args = parser.parse_args()
     
-    print(f"Building anxiety index for date: {args.date}")
+    logger.info(f"Building anxiety index for date: {args.date}")
     build_anxiety_index(args.date)

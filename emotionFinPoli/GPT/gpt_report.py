@@ -5,21 +5,40 @@ from datetime import datetime
 import os
 import time
 from dotenv import load_dotenv
+import logging
+
+# 로그 디렉토리 설정
+LOG_ROOT = "/home/hwangjeongmun691/logs"
+today = datetime.utcnow().strftime("%Y-%m-%d")
+LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+
+# 디렉토리 생성
+os.makedirs(LOG_DATE_DIR, exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(f"{LOG_DATE_DIR}/gpt_report.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger("gpt_report")
 
 # ✅ Load OpenAI API key from .env
-print(f"⏱️ {datetime.now().strftime('%H:%M:%S')} - 환경 변수 로드 중...")
+logger.info(f"⏱️ {datetime.now().strftime('%H:%M:%S')} - 환경 변수 로드 중...")
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 if openai.api_key:
-    print("✅ API 키 로드 완료")
+    logger.info("✅ API 키 로드 완료")
 else:
-    print("❌ API 키를 찾을 수 없습니다. .env 파일을 확인하세요.")
+    logger.error("❌ API 키를 찾을 수 없습니다. .env 파일을 확인하세요.")
 
 # ✅ Set current UTC date
 date_str = datetime.utcnow().strftime("%Y-%m-%d")
 # date_str = "2025-04-08"
 sources = ["news", "reddit"]
-print(f"📅 처리 날짜: {date_str}")
+logger.info(f"📅 처리 날짜: {date_str}")
 
 # ✅ GCS & local path formats
 base_gcs = "gs://emotion-index-data/{source}/{date}/{filename}"
@@ -35,38 +54,38 @@ required_files = [
     "emotion_ratio.json"
 ]
 
-print(f"🔢 총 처리 단계: {len(sources) * len(required_files) + 4} 단계")
+logger.info(f"🔢 총 처리 단계: {len(sources) * len(required_files) + 4} 단계")
 progress_count = 0
 
 # ✅ 4. GCS 파일 다운로드
 def download_gcs_files(source):
     global progress_count
-    print(f"\n{'='*50}")
-    print(f"📥 {source.upper()} 데이터 다운로드 시작")
-    print(f"{'='*50}")
+    logger.info(f"\n{'='*50}")
+    logger.info(f"📥 {source.upper()} 데이터 다운로드 시작")
+    logger.info(f"{'='*50}")
     
     for i, fname in enumerate(required_files):
         gcs_path = base_gcs.format(source=source, date=date_str, filename=fname)
         local_path = local_tmp.format(source=source, filename=fname)
-        print(f"⏱️ {datetime.now().strftime('%H:%M:%S')} - [{i+1}/{len(required_files)}] 다운로드 중: {gcs_path}")
+        logger.info(f"⏱️ {datetime.now().strftime('%H:%M:%S')} - [{i+1}/{len(required_files)}] 다운로드 중: {gcs_path}")
         try:
             start_time = time.time()
             subprocess.run(["gsutil", "cp", gcs_path, local_path], check=True)
             elapsed = time.time() - start_time
             progress_count += 1
             overall_progress = (progress_count / (len(sources) * len(required_files) + 4)) * 100
-            print(f"✅ 다운로드 완료: {local_path} (소요시간: {elapsed:.2f}초)")
-            print(f"📊 전체 진행률: {overall_progress:.1f}%")
+            logger.info(f"✅ 다운로드 완료: {local_path} (소요시간: {elapsed:.2f}초)")
+            logger.info(f"📊 전체 진행률: {overall_progress:.1f}%")
         except subprocess.CalledProcessError as e:
-            print(f"❌ 다운로드 실패: {gcs_path}")
-            print(f"  오류 코드: {e.returncode}")
-            print(f"  오류 내용: {e.output if hasattr(e, 'output') else '알 수 없음'}")
+            logger.error(f"❌ 다운로드 실패: {gcs_path}")
+            logger.error(f"  오류 코드: {e.returncode}")
+            logger.error(f"  오류 내용: {e.output if hasattr(e, 'output') else '알 수 없음'}")
             continue
-    print(f"{'='*50}")
+    logger.info(f"{'='*50}")
 
 # ✅ 5. JSON 파일 로드
 def load_json(source):
-    print(f"\n📂 {source.upper()} JSON 파일 로드 중...")
+    logger.info(f"\n📂 {source.upper()} JSON 파일 로드 중...")
     data = {}
     for fname in required_files:
         path = local_tmp.format(source=source, filename=fname)
@@ -74,16 +93,16 @@ def load_json(source):
             with open(path, "r", encoding="utf-8") as f:
                 key = fname.replace(".json", "")
                 data[key] = json.load(f)
-                print(f"✅ {fname} 로드 완료 ({len(str(data[key]))} 바이트)")
+                logger.info(f"✅ {fname} 로드 완료 ({len(str(data[key]))} 바이트)")
         except FileNotFoundError:
-            print(f"❌ 파일을 찾을 수 없음: {path}")
+            logger.error(f"❌ 파일을 찾을 수 없음: {path}")
         except json.JSONDecodeError:
-            print(f"❌ JSON 파싱 오류: {path}")
+            logger.error(f"❌ JSON 파싱 오류: {path}")
     return data
 
 # ✅ 6. 보고서 구성 (대표 문장 출력 + GPT 요약 포함)
 def build_report_text(news_data, reddit_data):
-    print(f"\n📝 보고서 구성 중...")
+    logger.info(f"\n📝 보고서 구성 중...")
     
     def format_emotion_ratio(ratio):
         return "\n".join([f"- {emotion}: {info['percentage']}%" for emotion, info in ratio.items()])
@@ -110,15 +129,15 @@ def build_report_text(news_data, reddit_data):
 
 📌 Summary (Generated by GPT):
 """
-    print(f"✅ 보고서 본문 구성 완료 ({len(text)} 자)")
+    logger.info(f"✅ 보고서 본문 구성 완료 ({len(text)} 자)")
     return text
 
 # ✅ 7. GPT 요약 요청
 def generate_summary(news_ratio, reddit_ratio):
     global progress_count
-    print(f"\n{'='*50}")
-    print(f"🧠 GPT 요약 생성 요청 중...")
-    print(f"{'='*50}")
+    logger.info(f"\n{'='*50}")
+    logger.info(f"🧠 GPT 요약 생성 요청 중...")
+    logger.info(f"{'='*50}")
     
     # ✅ 📍 여기서 GPT 문체나 프롬프트 문구 커스터마이징 가능
     prompt = f"""
@@ -136,11 +155,11 @@ Reddit emotion ratio:
 
 Be concise, analytical, and professional. Write in English. Avoid redundancy.
 """
-    print(f"📤 GPT 프롬프트 길이: {len(prompt)} 자")
+    logger.info(f"📤 GPT 프롬프트 길이: {len(prompt)} 자")
     
     try:
         start_time = time.time()
-        print(f"⏱️ {datetime.now().strftime('%H:%M:%S')} - API 호출 중...")
+        logger.info(f"⏱️ {datetime.now().strftime('%H:%M:%S')} - API 호출 중...")
         response = openai.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -157,27 +176,27 @@ Be concise, analytical, and professional. Write in English. Avoid redundancy.
         progress_count += 1
         overall_progress = (progress_count / (len(sources) * len(required_files) + 4)) * 100
         
-        print(f"✅ GPT 응답 수신 완료 (소요시간: {elapsed:.2f}초)")
-        print(f"📊 전체 진행률: {overall_progress:.1f}%")
-        print(f"📝 요약 길이: {len(summary)} 자")
+        logger.info(f"✅ GPT 응답 수신 완료 (소요시간: {elapsed:.2f}초)")
+        logger.info(f"📊 전체 진행률: {overall_progress:.1f}%")
+        logger.info(f"📝 요약 길이: {len(summary)} 자")
         return summary
     except Exception as e:
-        print(f"❌ GPT API 호출 실패: {e}")
-        print(f"  상세 오류: {str(e)}")
+        logger.error(f"❌ GPT API 호출 실패: {e}")
+        logger.error(f"  상세 오류: {str(e)}")
         return "API 호출 중 오류가 발생했습니다."
 
 # ✅ 8. 보고서 저장 + 업로드
 def save_report(text):
     global progress_count
-    print(f"\n{'='*50}")
-    print(f"💾 보고서 저장 및 업로드 중...")
-    print(f"{'='*50}")
+    logger.info(f"\n{'='*50}")
+    logger.info(f"💾 보고서 저장 및 업로드 중...")
+    logger.info(f"{'='*50}")
     
     try:
         # 로컬 저장 - 인코딩 추가
         with open(report_local_path, "w", encoding="utf-8") as f:
             f.write(text)
-        print(f"✅ 로컬 저장 완료: {report_local_path} ({len(text)} 바이트)")
+        logger.info(f"✅ 로컬 저장 완료: {report_local_path} ({len(text)} 바이트)")
         
         # GCS 업로드
         start_time = time.time()
@@ -187,17 +206,17 @@ def save_report(text):
         progress_count += 1
         overall_progress = (progress_count / (len(sources) * len(required_files) + 4)) * 100
         
-        print(f"✅ GCS 업로드 완료: {report_gcs_path} (소요시간: {elapsed:.2f}초)")
-        print(f"📊 전체 진행률: {overall_progress:.1f}%")
+        logger.info(f"✅ GCS 업로드 완료: {report_gcs_path} (소요시간: {elapsed:.2f}초)")
+        logger.info(f"📊 전체 진행률: {overall_progress:.1f}%")
     except Exception as e:
-        print(f"❌ 보고서 저장/업로드 실패: {e}")
+        logger.error(f"❌ 보고서 저장/업로드 실패: {e}")
 
 # ✅ 9. 시각화 이미지 복사
 def copy_visuals():
     global progress_count
-    print(f"\n{'='*50}")
-    print(f"🖼️ 시각화 이미지 복사 중...")
-    print(f"{'='*50}")
+    logger.info(f"\n{'='*50}")
+    logger.info(f"🖼️ 시각화 이미지 복사 중...")
+    logger.info(f"{'='*50}")
     
     total_files = len(sources) * 2
     copied = 0
@@ -208,26 +227,26 @@ def copy_visuals():
             dest_name = f"{src}_{vis}"
             dest_path = f"gs://emotion-index-data/final_anxiety_index/{date_str}/{dest_name}"
             
-            print(f"⏱️ {datetime.now().strftime('%H:%M:%S')} - [{copied+1}/{total_files}] 복사 중: {dest_name}")
+            logger.info(f"⏱️ {datetime.now().strftime('%H:%M:%S')} - [{copied+1}/{total_files}] 복사 중: {dest_name}")
             
             try:
                 start_time = time.time()
                 subprocess.run(["gsutil", "cp", src_path, dest_path], check=True)
                 elapsed = time.time() - start_time
                 copied += 1
-                print(f"✅ 복사 완료: {dest_path} (소요시간: {elapsed:.2f}초)")
+                logger.info(f"✅ 복사 완료: {dest_path} (소요시간: {elapsed:.2f}초)")
             except subprocess.CalledProcessError as e:
-                print(f"❌ 이미지 복사 실패: {src_path} -> {dest_path}")
-                print(f"  오류 코드: {e.returncode}")
+                logger.error(f"❌ 이미지 복사 실패: {src_path} -> {dest_path}")
+                logger.error(f"  오류 코드: {e.returncode}")
     
     progress_count += 1
     overall_progress = (progress_count / (len(sources) * len(required_files) + 4)) * 100
-    print(f"📊 전체 진행률: {overall_progress:.1f}%")
+    logger.info(f"📊 전체 진행률: {overall_progress:.1f}%")
 
 # ✅ 10. 전체 실행
-print(f"\n{'='*50}")
-print(f"🚀 GPT 리포트 생성 시작: {date_str}")
-print(f"{'='*50}")
+logger.info(f"\n{'='*50}")
+logger.info(f"🚀 GPT 리포트 생성 시작: {date_str}")
+logger.info(f"{'='*50}")
 
 start_total_time = time.time()
 news_data, reddit_data = {}, {}
@@ -247,8 +266,8 @@ save_report(full_report)
 copy_visuals()
 
 total_elapsed = time.time() - start_total_time
-print(f"\n{'='*50}")
-print(f"✅ 모든 작업 완료!")
-print(f"⏱️ 총 소요시간: {total_elapsed:.2f}초 ({total_elapsed/60:.2f}분)")
-print(f"📄 최종 보고서: {report_gcs_path}")
-print(f"{'='*50}\n")
+logger.info(f"\n{'='*50}")
+logger.info(f"✅ 모든 작업 완료!")
+logger.info(f"⏱️ 총 소요시간: {total_elapsed:.2f}초 ({total_elapsed/60:.2f}분)")
+logger.info(f"📄 최종 보고서: {report_gcs_path}")
+logger.info(f"{'='*50}\n")

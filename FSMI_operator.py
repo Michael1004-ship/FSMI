@@ -8,15 +8,18 @@ import os
 from datetime import datetime
 
 # 로깅 설정
-log_dir = "logs"
-os.makedirs(log_dir, exist_ok=True)
-log_file = f"{log_dir}/fsmi_operator_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+LOG_ROOT = "/home/hwangjeongmun691/logs"
+today = datetime.utcnow().strftime("%Y-%m-%d")
+LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+
+# 디렉토리 생성
+os.makedirs(LOG_DATE_DIR, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(log_file),
+        logging.FileHandler(f"{LOG_DATE_DIR}/fsmi_operator.log"),
         logging.StreamHandler()
     ]
 )
@@ -94,7 +97,7 @@ def run_script(path, debug=False, retry=3):
     logger.info(footer)
     logger.info(f"⏱️ 실행 시간: {elapsed_time:.2f}초")
     logger.info(f"📊 메모리 변화: {mem_diff:.2f}MB (이전: {before_mem:.2f}MB, 이후: {after_mem:.2f}MB)")
-    logger.info(f"📋 로그 저장 위치: {log_file}\n")
+    logger.info(f"📋 로그 저장 위치: {LOG_DATE_DIR}/fsmi_operator.log\n")
     
     return success
 
@@ -173,7 +176,7 @@ def main():
     logger.info(f"📋 실행 요약: {success_count}/{total_scripts} 성공 ({success_count/total_scripts*100:.1f}%)")
     logger.info(f"⏱️ 총 실행 시간: {total_elapsed:.2f}초 ({total_elapsed/60:.2f}분)")
     logger.info(f"📊 평균 스크립트 실행 시간: {total_elapsed/total_scripts:.2f}초")
-    logger.info(f"📜 자세한 로그: {log_file}")
+    logger.info(f"📜 자세한 로그: {LOG_DATE_DIR}/fsmi_operator.log")
     logger.info("="*60)
 
 if __name__ == "__main__":

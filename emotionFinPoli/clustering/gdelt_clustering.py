@@ -31,15 +31,26 @@ CPU_CORES = max(1, multiprocessing.cpu_count() - 1)  # Leave 1 core free
 # ----------------------------
 # Logging Setup
 # ----------------------------
+import os
+from datetime import datetime
+
+# 로그 디렉토리 설정
+LOG_ROOT = "/home/hwangjeongmun691/logs"
+today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+
+# 디렉토리 생성
+os.makedirs(LOG_DATE_DIR, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("news_clustering.log"),
+        logging.FileHandler(f"{LOG_DATE_DIR}/gdelt_clustering.log"),
         logging.StreamHandler()
     ]
 )
-logger = logging.getLogger("news_clustering")
+logger = logging.getLogger("gdelt_clustering")
 
 # ----------------------------
 # Performance Monitoring
