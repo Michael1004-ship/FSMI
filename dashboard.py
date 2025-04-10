@@ -137,7 +137,7 @@ if page == "Dashboard":
     st.title("📉 Real-time Anxiety Dashboard")
 
     # Note about time zone
-    st.caption("Note: All times shown are in UTC. This dashboard is updated twice daily, corresponding to the US stock market opening (around 14:30 UTC) and closing (around 21:00 UTC) hours.")
+    st.caption("Note: All times shown are in UTC. This dashboard reflects snapshots of sentiment around key US market hours.")
 
     # Data sources information
     with st.expander("About the Data Sources"):
@@ -290,7 +290,7 @@ elif page == "Time Series":
     st.title("📈 Anxiety Index Time Series")
 
     # Note about time zone and market hours
-    st.caption("Note: All times shown are in UTC. This dashboard is updated twice daily, corresponding to the US stock market opening (around 14:30 UTC) and closing (around 21:00 UTC) hours.")
+    st.caption("Note: All times shown are in UTC. This dashboard reflects snapshots of sentiment around key US market hours.")
     
     # Data sources information
     with st.expander("About the Data Sources"):
