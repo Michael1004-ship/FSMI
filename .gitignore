@@ -3,4 +3,6 @@ env/
 data/
 outputs/
 praw.ini
+GPT/
+building_index/
 
