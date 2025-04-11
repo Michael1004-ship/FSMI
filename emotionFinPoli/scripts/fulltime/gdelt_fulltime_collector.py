@@ -10,6 +10,7 @@ import logging
 import json
 from google.cloud import storage
 import sys
+import argparse
 
 # 로그 디렉토리 설정
 LOG_ROOT = "/home/hwangjeongmun691/logs"
@@ -88,7 +89,10 @@ def download_and_parse_csv(zip_url):
             for name in z.namelist():
                 with z.open(name) as f:
                     chunk_size = 10000
-                    chunks = [chunk for chunk in pd.read_csv(f, sep='\t', header=None, dtype=str, chunksize=chunk_size)]
+                    chunks = [chunk for chunk in pd.read_csv(f, sep='\t', header=None, 
+                                                          dtype=str, chunksize=chunk_size,
+                                                          encoding='latin-1',  
+                                                          on_bad_lines='skip')]
                     return pd.concat(chunks, ignore_index=True)
     except Exception as e:
         logger.warning(f"{zip_url} 실패: {e}")
@@ -179,24 +183,17 @@ def run(start_str, end_str):
         logger.warning("⚠️ 저장할 뉴스가 없습니다. 필터링 조건을 확인하세요.")
 
 if __name__ == "__main__":
-    # 명령줄 인자 확인
-    if len(sys.argv) >= 3:
-        start = sys.argv[1]
-        end = sys.argv[2]
-    else:
-        # 사용자 입력 받기
-        print("GDELT 데이터 수집 도구")
-        print("-" * 30)
-        start = input("시작일 (YYYY-MM-DD 형식): ")
-        end = input("종료일 (YYYY-MM-DD 형식): ")
+    parser = argparse.ArgumentParser(description="GDELT 데이터 수집기")
+    parser.add_argument("--start", required=True, help="시작일 (YYYY-MM-DD)")
+    parser.add_argument("--end", required=True, help="종료일 (YYYY-MM-DD)")
+    parser.add_argument("--debug", action="store_true", help="디버그 모드 활성화")
+    args = parser.parse_args()
     
-    # 날짜 형식 검증 (YYYY-MM-DD)
     try:
-        datetime.strptime(start, "%Y-%m-%d")
-        datetime.strptime(end, "%Y-%m-%d")
-    except ValueError:
-        print("오류: 날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식을 사용하세요.")
+        run(args.start, args.end)
+    except Exception as e:
+        if args.debug:
+            logger.exception("오류 발생:")
+        else:
+            logger.error(f"오류 발생: {str(e)}")
         sys.exit(1)
-    
-    logger.info(f"수집 기간: {start} ~ {end}")
-    run(start, end)

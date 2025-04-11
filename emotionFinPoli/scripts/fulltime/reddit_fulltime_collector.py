@@ -9,6 +9,7 @@ from google.cloud import storage
 from time import sleep
 import sys
 from dotenv import load_dotenv
+import argparse
 
 # ✅ 환경 변수 로드
 load_dotenv()
@@ -227,24 +228,38 @@ def run(start_str, end_str):
     logger.info("🎉 전체 Reddit 수집 완료!")
 
 if __name__ == "__main__":
-    # 명령줄 인자 확인
-    if len(sys.argv) >= 3:
-        start = sys.argv[1]
-        end = sys.argv[2]
-    else:
-        # 사용자 입력 받기
-        print("Reddit 데이터 수집 도구")
-        print("-" * 30)
-        start = input("시작일 (YYYY-MM-DD 형식): ")
-        end = input("종료일 (YYYY-MM-DD 형식): ")
+    parser = argparse.ArgumentParser(description="Reddit 데이터 수집기")
+    parser.add_argument("--start", required=True, help="시작일 (YYYY-MM-DD)")
+    parser.add_argument("--end", required=True, help="종료일 (YYYY-MM-DD)")
+    parser.add_argument("--debug", action="store_true", help="디버그 모드 활성화")
+    args = parser.parse_args()
     
-    # 날짜 형식 검증 (YYYY-MM-DD)
     try:
-        datetime.strptime(start, "%Y-%m-%d")
-        datetime.strptime(end, "%Y-%m-%d")
-    except ValueError:
-        print("오류: 날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식을 사용하세요.")
+        # 날짜 형식 검증
+        start_date = datetime.strptime(args.start, "%Y-%m-%d")
+        end_date = datetime.strptime(args.end, "%Y-%m-%d")
+        
+        if end_date < start_date:
+            logger.error("❌ 종료일이 시작일보다 앞설 수 없습니다.")
+            sys.exit(1)
+            
+        logger.info(f"📅 수집 기간: {args.start} ~ {args.end}")
+        
+        # Reddit API 연결 확인
+        if not all([os.getenv("REDDIT_CLIENT_ID"), 
+                   os.getenv("REDDIT_CLIENT_SECRET"), 
+                   os.getenv("REDDIT_USER_AGENT")]):
+            logger.error("❌ Reddit API 인증 정보가 설정되지 않았습니다.")
+            sys.exit(1)
+            
+        run(args.start, args.end)
+        
+    except ValueError as e:
+        logger.error(f"❌ 날짜 형식이 올바르지 않습니다: {str(e)}")
         sys.exit(1)
-    
-    logger.info(f"수집 기간: {start} ~ {end}")
-    run(start, end)
+    except Exception as e:
+        if args.debug:
+            logger.exception("오류 발생:")
+        else:
+            logger.error(f"오류 발생: {str(e)}")
+        sys.exit(1)
