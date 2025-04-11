@@ -75,3 +75,6 @@ This is a personal research project.Collaboration, academic publication, and pro
 ### License
 This project is licensed for non-commercial research use.  
 See [LICENSE](./LICENSE) for details.
+
+⚠️ This project includes proprietary market index methodology currently under patent preparation. Redistribution of the core formula is not permitted.
+

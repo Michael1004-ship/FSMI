@@ -180,36 +180,20 @@ if page == "Dashboard":
             st.markdown(f"<h1 style='text-align: center; color: #FF4B4B;'>{total_score:.2f}</h1>", unsafe_allow_html=True)
             
             # 수식 설명 접을 수 있는 섹션 수정
-            with st.expander("🧠 How is the Anxiety Index calculated?"):
-                st.markdown("### 🧮 Full Calculation Process")
-                st.markdown("The **Anxiety Index** is calculated from financial news and Reddit in three steps:")
-
-                st.markdown("#### 📰 Step 1: News Component")
-                st.markdown("1. Compute raw news anxiety index (volume × intensity):")
-                st.latex(r"News\_Anxiety_i = Ratio \times (Avg\_Negative\_Score_i)^{1.5}")
-
-                st.markdown("2. Convert to Z-score:")
-                st.latex(r"Z_i = \frac{News\_Anxiety_i - \mu}{\sigma}")
-
-                st.markdown("3. Clip and exponentiate:")
-                st.latex(r"Z\_clipped = \text{clip}(Z_i, -3, 3)")
-                st.latex(r"News\_Component = \exp(Z\_clipped)")
-
-                st.markdown("#### 💬 Step 2: Reddit Component")
-                st.markdown("1. Calculate anxiety index for each Reddit model (same method as news):")
-                st.markdown("   - For each model (FinBERT & RoBERTa), compute raw anxiety score")
-                st.latex(r"Reddit\_Anxiety_i = Ratio \times (Avg\_Negative\_Score_i)^{1.5}")
-                st.markdown("   - Convert to Z-scores (same standardization process as news)")
-                st.latex(r"FinBERT\_Z_i = \frac{FinBERT\_Anxiety_i - \mu}{\sigma}")
-                st.latex(r"RoBERTa\_Z_i = \frac{RoBERTa\_Anxiety_i - \mu}{\sigma}")
-
-                st.markdown("2. Combine and exponentiate:")
-                st.latex(r"Reddit\_Z = \exp\left(\frac{FinBERT\_Z_i + RoBERTa\_Z_i}{2}\right)")
-
-                st.markdown("3. Clip:")
-                st.latex(r"Reddit\_Z\_clipped = \text{clip}(Reddit\_Z, -3, 3)")
-
-                st.caption("Note: `Ratio`, `Avg Score`, and `Std` come from each day's summary statistics.")
+            with st.expander("🧠 About the Anxiety Index"):
+                st.markdown("### Anxiety Index Methodology")
+                st.markdown("""
+                The **Anxiety Index** measures financial market emotional sentiment using:
+                
+                - **News articles**: Analysis of negative sentiment in financial news
+                - **Social media (Reddit)**: Financial community discussions
+                
+                The index combines sentiment intensity and volume metrics, with calibrated weighting between various sources.
+                
+                This proprietary methodology captures emotional volatility in markets and provides early signals of potential market stress.
+                """)
+                
+                st.caption("Note: Detailed calculation methodology and weighting formulas are proprietary technology pending patent protection.")
             
             st.markdown("---")
         
