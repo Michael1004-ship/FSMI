@@ -1,0 +1,6 @@
+Type,Ratio,Avg Score,Std,Anxiety Index
+Total,,,,
+News,0.93,0.158,0.1552425097456305,0.8463933278184298
+Reddit_FinBERT,0.0,0.0,,0.0
+Reddit_RoBERTa,0.0,0.0,,0.0
+Reddit_Combined,,,,

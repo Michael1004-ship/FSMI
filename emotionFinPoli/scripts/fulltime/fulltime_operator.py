@@ -260,13 +260,20 @@ def main():
     logger.info(f"\n📋 감정 분석 파이프라인 시작")
     logger.info(f"📅 처리 기간: {start} ~ {end}")
     
-    # 실행할 스크립트 목록 (상대 경로 사용)
+    # 병렬 실행을 구현하는 코드 추가
+    import threading
+
+    # 병렬 실행할 스크립트들 그룹화
+    parallel_scripts = {
+        "group1": ["reddit_fulltime_FinBERT.py", "reddit_fulltime_RoBERTa.py"]
+    }
+
+    # 스크립트 목록 수정
     scripts = [
         "gdelt_fulltime_collector.py",
         "reddit_fulltime_collector.py",
         "gdelt_fulltime_crawling&FinBERT.py",
-        "reddit_fulltime_FinBERT.py",
-        "reddit_fulltime_RoBERTa.py",
+        "parallel_group1",  # FinBERT와 RoBERTa를 병렬로 실행
         "build_anxiety_index.py"
     ]
     
