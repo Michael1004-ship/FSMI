@@ -7,10 +7,16 @@ import sys
 import os
 from datetime import datetime
 
+# 디버깅용 정보 출력
+print("✅ 현재 파이썬:", sys.executable)
+print("✅ 현재 작업 디렉토리:", os.getcwd())
+
 # 로깅 설정
 LOG_ROOT = "/home/hwangjeongmun691/logs"
 today = datetime.utcnow().strftime("%Y-%m-%d")
 LOG_DATE_DIR = f"{LOG_ROOT}/{today}"
+current_time = datetime.utcnow().strftime("%H%M%S")
+log_filename = f"fsmi_operator_{today.replace('-', '')}_{current_time}.log"
 
 # 디렉토리 생성
 os.makedirs(LOG_DATE_DIR, exist_ok=True)
@@ -19,11 +25,15 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(f"{LOG_DATE_DIR}/fsmi_operator.log"),
+        logging.FileHandler(f"{LOG_DATE_DIR}/{log_filename}"),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger("FSMI_operator")
+logger.info(f"📋 로그 저장 위치: {LOG_DATE_DIR}/{log_filename}")
+
+# 가상환경 Python 경로 설정
+VENV_PYTHON = "/home/hwangjeongmun691/projects/emotionFinPoli/env/bin/python"
 
 def run_script(path, debug=False, retry=3):
     """스크립트를 실행하고 디버깅 정보를 제공합니다."""
@@ -41,8 +51,8 @@ def run_script(path, debug=False, retry=3):
             logger.warning(f"재시도 {attempt}/{retry}: {script_name}")
         
         try:
-            # 명령 구성
-            cmd = ["python3", path]
+            # 명령 구성 - 가상환경 Python 사용
+            cmd = [VENV_PYTHON, path]
             if debug:
                 cmd.append("--debug")
             
@@ -52,7 +62,7 @@ def run_script(path, debug=False, retry=3):
             before_mem = process.memory_info().rss / 1024 / 1024  # MB
             
             # 스크립트 실행
-            logger.info(f"🚀 실행 중: {path} (시도 {attempt}/{retry})")
+            logger.info(f"🚀 실행 중: {path} (시도 {attempt}/{retry}) - 가상환경: {VENV_PYTHON}")
             result = subprocess.run(
                 cmd,
                 check=True,
@@ -97,7 +107,7 @@ def run_script(path, debug=False, retry=3):
     logger.info(footer)
     logger.info(f"⏱️ 실행 시간: {elapsed_time:.2f}초")
     logger.info(f"📊 메모리 변화: {mem_diff:.2f}MB (이전: {before_mem:.2f}MB, 이후: {after_mem:.2f}MB)")
-    logger.info(f"📋 로그 저장 위치: {LOG_DATE_DIR}/fsmi_operator.log\n")
+    logger.info(f"📋 로그 저장 위치: {LOG_DATE_DIR}/{log_filename}")
     
     return success
 
@@ -176,7 +186,7 @@ def main():
     logger.info(f"📋 실행 요약: {success_count}/{total_scripts} 성공 ({success_count/total_scripts*100:.1f}%)")
     logger.info(f"⏱️ 총 실행 시간: {total_elapsed:.2f}초 ({total_elapsed/60:.2f}분)")
     logger.info(f"📊 평균 스크립트 실행 시간: {total_elapsed/total_scripts:.2f}초")
-    logger.info(f"📜 자세한 로그: {LOG_DATE_DIR}/fsmi_operator.log")
+    logger.info(f"📜 자세한 로그: {LOG_DATE_DIR}/{log_filename}")
     logger.info("="*60)
 
 if __name__ == "__main__":
