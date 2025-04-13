@@ -266,17 +266,17 @@ if page == "Dashboard":
     # Z-score*100 값 기반 FANI 단계 결정 함수 추가
     def get_fani_stage_from_z100(z100):
         stages = [
-            {"label": "매우 낮음", "range": [None, 0.883], "color": "#2166ac"},
-            {"label": "낮음", "range": [0.883, 1.744], "color": "#67a9cf"},
-            {"label": "보통", "range": [1.744, 2.499], "color": "#fddbc7"},
-            {"label": "높음", "range": [2.499, 3.284], "color": "#ef8a62"},
-            {"label": "매우 높음", "range": [3.284, None], "color": "#b2182b"},
+            {"label": "Very Low", "range": [None, 0.883], "color": "#2166ac"},
+            {"label": "Low", "range": [0.883, 1.744], "color": "#67a9cf"},
+            {"label": "Moderate", "range": [1.744, 2.499], "color": "#fddbc7"},
+            {"label": "High", "range": [2.499, 3.284], "color": "#ef8a62"},
+            {"label": "Very High", "range": [3.284, None], "color": "#b2182b"},
         ]
         for stage in stages:
             low, high = stage["range"]
-            if (low is None or z100 >= low * 100) and (high is None or z100 < high * 100):
+            if (low is None or z100 >= low) and (high is None or z100 < high):
                 return stage
-        return stages[2]  # default: 보통
+        return stages[2]  # default: Moderate
 
     # FSMI (기존 지수) 표시 - 단계 없이 검은색으로 값만 표시
     st.markdown("## 📈 FSMI (Full Spectrum)")
