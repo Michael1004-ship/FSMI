@@ -421,9 +421,6 @@ if page == "Dashboard":
     | **Std** (Standard Deviation) | The degree of variation in the individual negative sentiment scores. A higher Std implies more emotional volatility. | News & Reddit |
     """)
 
-    else:
-        st.warning("Anxiety index not available for this date.")
-
     # ② 감정 시각화
     st.markdown("### 🖼 Emotion Visualizations")
     col1, col2 = st.columns(2)
