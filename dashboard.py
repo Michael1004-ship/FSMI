@@ -266,11 +266,11 @@ if page == "Dashboard":
     # Z-score*100 값 기반 FANI 단계 결정 함수 추가
     def get_fani_stage_from_z100(z100):
         stages = [
-            {"label": "Very Low", "range": [None, 0.883], "color": "#2166ac"},
-            {"label": "Low", "range": [0.883, 1.744], "color": "#67a9cf"},
-            {"label": "Moderate", "range": [1.744, 2.499], "color": "#fddbc7"},
-            {"label": "High", "range": [2.499, 3.284], "color": "#ef8a62"},
-            {"label": "Very High", "range": [3.284, None], "color": "#b2182b"},
+            {"label": "Very Low", "range": [None, 0.883], "color": "#1a4c8e"},   # 진한 파랑
+            {"label": "Low", "range": [0.883, 1.744], "color": "#4b8fd5"},       # 중간 파랑
+            {"label": "Moderate", "range": [1.744, 2.499], "color": "#e67e22"},  # 주황색 (더 진하게)
+            {"label": "High", "range": [2.499, 3.284], "color": "#d35400"},      # 짙은 주황
+            {"label": "Very High", "range": [3.284, None], "color": "#9c0e0e"},  # 진한 적색
         ]
         for stage in stages:
             low, high = stage["range"]
