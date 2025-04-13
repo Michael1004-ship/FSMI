@@ -190,64 +190,54 @@ if page == "Dashboard":
     # FANI 인덱스 로드 (새로 추가)
     df_fani = gcs.load_fani_index(selected_date)
     
-    # 두 지수 표시를 위한 컬럼 생성
-    col1, col2 = st.columns(2)
-    
+    # 두 지수를 위아래로 배치하도록 수정 (columns 제거)
     # FSMI (기존 지수) 표시
-    with col1:
-        st.markdown("## 📈 FSMI (Full Spectrum)")
-        if df_index is not None and not df_index.empty:
-            # 컬럼명 확인
-            anxiety_col = "Anxiety Index" if "Anxiety Index" in df_index.columns else "anxiety_index"
-            
-            # Total Anxiety Index
-            if "Type" in df_index.columns and "Total" in df_index["Type"].values:
-                total_row = df_index[df_index["Type"] == "Total"]
-                total_score = float(total_row[anxiety_col].values[0])
-                st.markdown(f"<h2 style='text-align: center; color: #FF4B4B;'>{total_score:.2f}</h2>", unsafe_allow_html=True)
-        else:
-            st.warning("FSMI not available for this date.")
-    
-    # FANI (뉴스만 기반) 표시
-    with col2:
-        st.markdown("## 📰 FANI (News Only)")
-        if df_fani is not None and not df_fani.empty:
-            # 컬럼명 확인
-            anxiety_col = "Anxiety Index" if "Anxiety Index" in df_fani.columns else "anxiety_index"
-            
-            # FANI 값 표시
-            if "Type" in df_fani.columns and "FANI" in df_fani["Type"].values:
-                fani_row = df_fani[df_fani["Type"] == "FANI"]
-                fani_score = float(fani_row[anxiety_col].values[0])
-                st.markdown(f"<h2 style='text-align: center; color: #36B9CC;'>{fani_score:.2f}</h2>", unsafe_allow_html=True)
-        else:
-            st.warning("FANI not available for this date.")
+    st.markdown("## 📈 FSMI (Full Spectrum)")
+    if df_index is not None and not df_index.empty:
+        # 컬럼명 확인
+        anxiety_col = "Anxiety Index" if "Anxiety Index" in df_index.columns else "anxiety_index"
+        
+        # Total Anxiety Index
+        if "Type" in df_index.columns and "Total" in df_index["Type"].values:
+            total_row = df_index[df_index["Type"] == "Total"]
+            total_score = float(total_row[anxiety_col].values[0])
+            st.markdown(f"<h2 style='text-align: center; color: #FF4B4B;'>{total_score:.2f}</h2>", unsafe_allow_html=True)
+    else:
+        st.warning("FSMI not available for this date.")
+
+    # FANI (뉴스만 기반) 표시 - 아래에 배치
+    st.markdown("## 📰 FANI (News Only)")
+    if df_fani is not None and not df_fani.empty:
+        # 컬럼명 확인
+        anxiety_col = "Anxiety Index" if "Anxiety Index" in df_fani.columns else "anxiety_index"
+        
+        # FANI 값 표시 - 100배 증가
+        if "Type" in df_fani.columns and "FANI" in df_fani["Type"].values:
+            fani_row = df_fani[df_fani["Type"] == "FANI"]
+            fani_score = float(fani_row[anxiety_col].values[0]) * 100
+            st.markdown(f"<h2 style='text-align: center; color: #36B9CC;'>{fani_score:.2f}</h2>", unsafe_allow_html=True)
+    else:
+        st.warning("FANI not available for this date.")
     
     # 지수 설명 (확장기 부분) 수정
     with st.expander("🧠 About the Anxiety Indexes"):
         st.markdown("""
-        ### What is FSMI vs. FANI?
+        ### 🧠 What is FSMI vs. FANI?
 
         **FSMI (Financial Sentiment Market Index)**  
-        A full-spectrum index that combines sentiment from both **news media (macro discourse)** and **social media (micro discourse)**. It reflects the *collective emotional state of the market*, incorporating broader trends and investor reactions across different platforms.
-
-        - Data Sources: News + Reddit
-        - Analysis Models: FinBERT + RoBERTa
-        - Reflects overall sentiment volatility and herd behavior
-        - Weighting: News (30%), Reddit (70%) by default
+        FSMI is a broad-based index that reflects the overall emotional climate of financial markets.  
+        It integrates signals from both professional news outlets and social media communities, capturing a wide range of investor sentiment — from institutional reactions to retail-level discussions.  
+        This index is designed to highlight collective market sentiment and shifts in crowd psychology.
 
         **FANI (Financial Anxiety News Index)**  
-        A focused index based solely on **news sentiment**. It captures *institutional anxiety* and *early signals of market concern* reflected by professional media.
-
-        - Data Sources: News only
-        - Analysis Model: FinBERT
-        - Faster to react to headlines and policy uncertainty
-        - Suitable for early-warning applications
+        FANI is a more focused index that tracks anxiety levels expressed in financial news coverage.  
+        It represents the tone and intensity of concern communicated by professional media sources.  
+        FANI often acts as an early signal of market stress, especially in response to macroeconomic risks or policy uncertainty.
 
         ---
 
-        While FSMI captures the **market-wide emotional landscape**,  
-        FANI is a **sharper lens** zoomed in on **professional sentiment and media tone**.
+        While **FSMI** maps the full spectrum of financial sentiment across platforms,  
+        **FANI** offers a sharper lens on institutional anxiety and media-driven concern.
         """)
         
     st.markdown("---")
