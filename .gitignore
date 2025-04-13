@@ -5,4 +5,5 @@ outputs/
 praw.ini
 GPT/
 building_index/
-
+FANI/
+emotionFinPoli/scripts/fulltime/
