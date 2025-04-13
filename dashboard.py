@@ -190,38 +190,34 @@ if page == "Dashboard":
     # FANI 인덱스 로드 (새로 추가)
     df_fani = gcs.load_fani_index(selected_date)
     
-    # 두 지수 표시를 위한 컬럼 생성
-    col1, col2 = st.columns(2)
-    
+    # 두 지수를 위아래로 배치하도록 수정 (약 120-141 라인)
     # FSMI (기존 지수) 표시
-    with col1:
-        st.markdown("## 📈 FSMI (Full Spectrum)")
-        if df_index is not None and not df_index.empty:
-            # 컬럼명 확인
-            anxiety_col = "Anxiety Index" if "Anxiety Index" in df_index.columns else "anxiety_index"
-            
-            # Total Anxiety Index
-            if "Type" in df_index.columns and "Total" in df_index["Type"].values:
-                total_row = df_index[df_index["Type"] == "Total"]
-                total_score = float(total_row[anxiety_col].values[0])
-                st.markdown(f"<h2 style='text-align: center; color: #FF4B4B;'>{total_score:.2f}</h2>", unsafe_allow_html=True)
-        else:
-            st.warning("FSMI not available for this date.")
-    
-    # FANI (뉴스만 기반) 표시
-    with col2:
-        st.markdown("## 📰 FANI (News Only)")
-        if df_fani is not None and not df_fani.empty:
-            # 컬럼명 확인
-            anxiety_col = "Anxiety Index" if "Anxiety Index" in df_fani.columns else "anxiety_index"
-            
-            # FANI 값 표시
-            if "Type" in df_fani.columns and "FANI" in df_fani["Type"].values:
-                fani_row = df_fani[df_fani["Type"] == "FANI"]
-                fani_score = float(fani_row[anxiety_col].values[0])
-                st.markdown(f"<h2 style='text-align: center; color: #36B9CC;'>{fani_score:.2f}</h2>", unsafe_allow_html=True)
-        else:
-            st.warning("FANI not available for this date.")
+    st.markdown("## 📈 FSMI (Full Spectrum)")
+    if df_index is not None and not df_index.empty:
+        # 컬럼명 확인
+        anxiety_col = "Anxiety Index" if "Anxiety Index" in df_index.columns else "anxiety_index"
+        
+        # Total Anxiety Index
+        if "Type" in df_index.columns and "Total" in df_index["Type"].values:
+            total_row = df_index[df_index["Type"] == "Total"]
+            total_score = float(total_row[anxiety_col].values[0])
+            st.markdown(f"<h2 style='text-align: center; color: #FF4B4B;'>{total_score:.2f}</h2>", unsafe_allow_html=True)
+    else:
+        st.warning("FSMI not available for this date.")
+
+    # FANI (뉴스만 기반) 표시 - 아래에 배치
+    st.markdown("## 📰 FANI (News Only)")
+    if df_fani is not None and not df_fani.empty:
+        # 컬럼명 확인
+        anxiety_col = "Anxiety Index" if "Anxiety Index" in df_fani.columns else "anxiety_index"
+        
+        # FANI 값 표시 - 100배 증가
+        if "Type" in df_fani.columns and "FANI" in df_fani["Type"].values:
+            fani_row = df_fani[df_fani["Type"] == "FANI"]
+            fani_score = float(fani_row[anxiety_col].values[0]) * 100  # 100배 증가
+            st.markdown(f"<h2 style='text-align: center; color: #36B9CC;'>{fani_score:.2f}</h2>", unsafe_allow_html=True)
+    else:
+        st.warning("FANI not available for this date.")
     
     # 지수 설명 (확장기 부분) 수정
     with st.expander("🧠 About the Anxiety Indexes"):
