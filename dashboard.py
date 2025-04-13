@@ -190,94 +190,7 @@ if page == "Dashboard":
     # FANI 인덱스 로드 (새로 추가)
     df_fani = gcs.load_fani_index(selected_date)
     
-    # 지수 단계 정의
-    anxiety_stages = {
-        "stage_1": {
-            "label": "매우 낮음",
-            "range": [None, 0.008833660497745099],
-            "color": "#2166ac"
-        },
-        "stage_2": {
-            "label": "낮음",
-            "range": [0.008833660497745099, 0.01744565985704204],
-            "color": "#67a9cf"
-        },
-        "stage_3": {
-            "label": "보통",
-            "range": [0.01744565985704204, 0.024995247587035606],
-            "color": "#fddbc7"
-        },
-        "stage_4": {
-            "label": "높음",
-            "range": [0.024995247587035606, 0.03284213387961839],
-            "color": "#ef8a62"
-        },
-        "stage_5": {
-            "label": "매우 높음",
-            "range": [0.03284213387961839, None],
-            "color": "#b2182b"
-        }
-    }
-
-    # Z-score 기반 단계 정의 - anxiety_stages와 동일한 범위 사용
-    z_score_stages = {
-        "stage_1": {
-            "label": "매우 낮음",
-            "range": [None, 0.008833660497745099],
-            "color": "#2166ac"
-        },
-        "stage_2": {
-            "label": "낮음",
-            "range": [0.008833660497745099, 0.01744565985704204],
-            "color": "#67a9cf"
-        },
-        "stage_3": {
-            "label": "보통",
-            "range": [0.01744565985704204, 0.024995247587035606],
-            "color": "#fddbc7"
-        },
-        "stage_4": {
-            "label": "높음",
-            "range": [0.024995247587035606, 0.03284213387961839],
-            "color": "#ef8a62"
-        },
-        "stage_5": {
-            "label": "매우 높음",
-            "range": [0.03284213387961839, None],
-            "color": "#b2182b"
-        }
-    }
-
-    # 점수에 따른 단계 결정 함수
-    def get_anxiety_stage(score):
-        for stage, info in anxiety_stages.items():
-            lower, upper = info["range"]
-            if (lower is None or score >= lower) and (upper is None or score < upper):
-                return info
-        return anxiety_stages["stage_3"]  # 기본값은 보통
-
-    def get_z_stage(score):
-        for stage, info in z_score_stages.items():
-            lower, upper = info["range"]
-            if (lower is None or score >= lower) and (upper is None or score < upper):
-                return info
-        return z_score_stages["stage_3"]  # 기본값은 보통
-
-    # Z-score*100 값 기반 FANI 단계 결정 함수 추가
-    def get_fani_stage_from_z100(z100):
-        stages = [
-            {"label": "매우 낮음", "range": [None, 0.883], "color": "#2166ac"},
-            {"label": "낮음", "range": [0.883, 1.744], "color": "#67a9cf"},
-            {"label": "보통", "range": [1.744, 2.499], "color": "#fddbc7"},
-            {"label": "높음", "range": [2.499, 3.284], "color": "#ef8a62"},
-            {"label": "매우 높음", "range": [3.284, None], "color": "#b2182b"},
-        ]
-        for stage in stages:
-            low, high = stage["range"]
-            if (low is None or z100 >= low * 100) and (high is None or z100 < high * 100):
-                return stage
-        return stages[2]  # default: 보통
-
+    # 두 지수를 위아래로 배치하도록 수정 (columns 제거)
     # FSMI (기존 지수) 표시
     st.markdown("## 📈 FSMI (Full Spectrum)")
     if df_index is not None and not df_index.empty:
@@ -288,55 +201,23 @@ if page == "Dashboard":
         if "Type" in df_index.columns and "Total" in df_index["Type"].values:
             total_row = df_index[df_index["Type"] == "Total"]
             total_score = float(total_row[anxiety_col].values[0])
-            
-            # 단계 결정
-            stage_info = get_anxiety_stage(total_score)
-            
-            # 스코어와 단계 표시
-            st.markdown(f"<h2 style='text-align: center; color: {stage_info['color']};'>{total_score:.2f}</h2>", unsafe_allow_html=True)
-            st.markdown(f"<p style='text-align: center; color: {stage_info['color']};'><b>{stage_info['label']}</b></p>", unsafe_allow_html=True)
-        else:
-            st.warning("FSMI not available for this date.")
+            st.markdown(f"<h2 style='text-align: center; color: #FF4B4B;'>{total_score:.2f}</h2>", unsafe_allow_html=True)
+    else:
+        st.warning("FSMI not available for this date.")
 
-    # FANI (뉴스만 기반) 표시 부분 수정
+    # FANI (뉴스만 기반) 표시 - 아래에 배치
     st.markdown("## 📰 FANI (News Only)")
     if df_fani is not None and not df_fani.empty:
         # 컬럼명 확인
         anxiety_col = "Anxiety Index" if "Anxiety Index" in df_fani.columns else "anxiety_index"
         
-        # FANI 값 표시
+        # FANI 값 표시 - 100배 증가
         if "Type" in df_fani.columns and "FANI" in df_fani["Type"].values:
             fani_row = df_fani[df_fani["Type"] == "FANI"]
-            
-            # Z-점수 확인
-            if "Z-Score Mean" in df_fani.columns:
-                z_score_val = fani_row["Z-Score Mean"].values[0]
-                if pd.notna(z_score_val):
-                    z_score = float(z_score_val)
-                    z100 = z_score * 100
-                    stage_info = get_fani_stage_from_z100(z100)
-                    
-                    # 스코어와 단계 표시
-                    st.markdown(f"<h2 style='text-align: center; color: {stage_info['color']};'>{z100:.2f}</h2>", unsafe_allow_html=True)
-                    st.markdown(f"<p style='text-align: center; color: {stage_info['color']};'><b>{stage_info['label']}</b></p>", unsafe_allow_html=True)
-                else:
-                    # Z-score가 없는 경우 기존 방식 사용
-                    fani_score_original = float(fani_row[anxiety_col].values[0])
-                    fani_score = fani_score_original * 100
-                    stage_info = get_anxiety_stage(fani_score_original)
-                    
-                    st.markdown(f"<h2 style='text-align: center; color: {stage_info['color']};'>{fani_score:.2f}</h2>", unsafe_allow_html=True)
-                    st.markdown(f"<p style='text-align: center; color: {stage_info['color']};'><b>{stage_info['label']}</b></p>", unsafe_allow_html=True)
-            else:
-                # Z-Score Mean 컬럼이 없는 경우 기존 방식 사용
-                fani_score_original = float(fani_row[anxiety_col].values[0])
-                fani_score = fani_score_original * 100
-                stage_info = get_anxiety_stage(fani_score_original)
-                
-                st.markdown(f"<h2 style='text-align: center; color: {stage_info['color']};'>{fani_score:.2f}</h2>", unsafe_allow_html=True)
-                st.markdown(f"<p style='text-align: center; color: {stage_info['color']};'><b>{stage_info['label']}</b></p>", unsafe_allow_html=True)
-        else:
-            st.warning("FANI not available for this date.")
+            fani_score = float(fani_row[anxiety_col].values[0]) * 100
+            st.markdown(f"<h2 style='text-align: center; color: #36B9CC;'>{fani_score:.2f}</h2>", unsafe_allow_html=True)
+    else:
+        st.warning("FANI not available for this date.")
     
     # 지수 설명 (확장기 부분) 수정
     with st.expander("🧠 About the Anxiety Indexes"):
@@ -357,20 +238,6 @@ if page == "Dashboard":
 
         While **FSMI** maps the full spectrum of financial sentiment across platforms,  
         **FANI** offers a sharper lens on institutional anxiety and media-driven concern.
-        """)
-        
-        st.markdown("""
-        ### FANI Anxiety Levels Based on Z-Score
-
-        FANI index is displayed as Z-score multiplied by 100.
-
-        | Level | Label | Displayed Value | Interpretation |
-        |-------|-------|----------------|----------------|
-        | 1 | Very Low | < 0.88 | Market is highly stable with minimal negative sentiment |
-        | 2 | Low | 0.88 - 1.74 | Market is stable and optimistic |
-        | 3 | Moderate | 1.74 - 2.50 | Normal market conditions with neutral sentiment |
-        | 4 | High | 2.50 - 3.28 | Increased market anxiety requiring attention |
-        | 5 | Very High | > 3.28 | Very high market anxiety with clear risk signals |
         """)
         
     st.markdown("---")
