@@ -107,6 +107,24 @@ class GCSHandler:
         except Exception as e:
             st.error(f"Error loading image: {str(e)}")
             return None
+    
+    def load_fani_index(self, date):
+        if not self.client:
+            return None
+            
+        try:
+            blob_path = f"final_fani_index/{date}/fani_index_final.csv"
+            bucket = self.client.bucket(self.bucket_name)
+            blob = bucket.blob(blob_path)
+            if blob.exists():
+                data = blob.download_as_text()
+                df = pd.read_csv(io.StringIO(data))
+                df['Date'] = date  # 날짜 열 추가
+                return df
+            return None
+        except Exception as e:
+            st.error(f"Error loading FANI index: {str(e)}")
+            return None
 
 # GCS 핸들러 생성
 gcs = GCSHandler()
@@ -166,86 +184,123 @@ if page == "Dashboard":
         All data is analyzed using natural language processing models to extract sentiment patterns and compute the anxiety index.
         """)
 
-    # ① 오늘의 Anxiety Index - 주요 지표
+    # FSMI 인덱스 로드 (기존 코드)
     df_index = gcs.load_anxiety_index(selected_date)
-    if df_index is not None and not df_index.empty:
-        # 컬럼명 확인
-        anxiety_col = "Anxiety Index" if "Anxiety Index" in df_index.columns else "anxiety_index"
-        
-        # Total Anxiety Index (크게 표시)
-        if "Type" in df_index.columns and "Total" in df_index["Type"].values:
-            total_row = df_index[df_index["Type"] == "Total"]
-            total_score = float(total_row[anxiety_col].values[0])
-            st.markdown("## 📈 Total Anxiety Index")
-            st.markdown(f"<h1 style='text-align: center; color: #FF4B4B;'>{total_score:.2f}</h1>", unsafe_allow_html=True)
+    
+    # FANI 인덱스 로드 (새로 추가)
+    df_fani = gcs.load_fani_index(selected_date)
+    
+    # 두 지수 표시를 위한 컬럼 생성
+    col1, col2 = st.columns(2)
+    
+    # FSMI (기존 지수) 표시
+    with col1:
+        st.markdown("## 📈 FSMI (Full Spectrum)")
+        if df_index is not None and not df_index.empty:
+            # 컬럼명 확인
+            anxiety_col = "Anxiety Index" if "Anxiety Index" in df_index.columns else "anxiety_index"
             
-            # 수식 설명 접을 수 있는 섹션 수정
-            with st.expander("🧠 About the Anxiety Index"):
-                st.markdown("### Anxiety Index Methodology")
-                st.markdown("""
-                The **Anxiety Index** measures financial market emotional sentiment using:
-                
-                - **News articles**: Analysis of negative sentiment in financial news
-                - **Social media (Reddit)**: Financial community discussions
-                
-                The index combines sentiment intensity and volume metrics, with calibrated weighting between various sources.
-                
-                This proprietary methodology captures emotional volatility in markets and provides early signals of potential market stress.
-                """)
-                
-                st.caption("Note: Detailed calculation methodology and weighting formulas are proprietary technology pending patent protection.")
+            # Total Anxiety Index
+            if "Type" in df_index.columns and "Total" in df_index["Type"].values:
+                total_row = df_index[df_index["Type"] == "Total"]
+                total_score = float(total_row[anxiety_col].values[0])
+                st.markdown(f"<h2 style='text-align: center; color: #FF4B4B;'>{total_score:.2f}</h2>", unsafe_allow_html=True)
+        else:
+            st.warning("FSMI not available for this date.")
+    
+    # FANI (뉴스만 기반) 표시
+    with col2:
+        st.markdown("## 📰 FANI (News Only)")
+        if df_fani is not None and not df_fani.empty:
+            # 컬럼명 확인
+            anxiety_col = "Anxiety Index" if "Anxiety Index" in df_fani.columns else "anxiety_index"
             
-            st.markdown("---")
-        
-        # ② News와 Reddit Combined만 작게 표시
-        st.markdown("### 📊 Component Indexes")
-        
-        col1, col2 = st.columns(2)
-        
-        # News Anxiety Index
-        if "Type" in df_index.columns and "News" in df_index["Type"].values:
-            news_row = df_index[df_index["Type"] == "News"]
-            news_score = float(news_row[anxiety_col].values[0])
-            with col1:
-                st.metric("News Anxiety Index", f"{news_score:.2f}")
-        
-        # Reddit Combined Anxiety Index
-        if "Type" in df_index.columns:
-            # "Reddit_Combined" 또는 "Reddit Combined" 찾기
-            reddit_type = None
-            for type_name in df_index["Type"].values:
-                if "reddit" in str(type_name).lower() and "combined" in str(type_name).lower():
-                    reddit_type = type_name
-                    break
-            
-            if reddit_type:
-                reddit_row = df_index[df_index["Type"] == reddit_type]
-                reddit_score = float(reddit_row[anxiety_col].values[0])
-                with col2:
-                    st.metric("Reddit Combined Anxiety Index", f"{reddit_score:.2f}")
-        
-        # 추가 옵션: 원본 데이터 표시
-        if st.checkbox("Show all components"):
-            st.dataframe(df_index)
-            
-            # 용어 설명 부분을 여기로 이동
-            with st.expander("ℹ️ What are 'Ratio', 'Avg Score', and 'Std'?"):
-                st.markdown("""
-### 📘 Component Terminology
+            # FANI 값 표시
+            if "Type" in df_fani.columns and "FANI" in df_fani["Type"].values:
+                fani_row = df_fani[df_fani["Type"] == "FANI"]
+                fani_score = float(fani_row[anxiety_col].values[0])
+                st.markdown(f"<h2 style='text-align: center; color: #36B9CC;'>{fani_score:.2f}</h2>", unsafe_allow_html=True)
+        else:
+            st.warning("FANI not available for this date.")
+    
+    # 지수 설명 (확장기 부분) 수정
+    with st.expander("🧠 About the Anxiety Indexes"):
+        st.markdown("""
+        ### What is FSMI vs. FANI?
 
-These three components help explain how the **Anxiety Index** is calculated for the following sources:
-- `News`
-- `Reddit_FinBERT`
-- `Reddit_RoBERTa`
+        **FSMI (Financial Sentiment Market Index)**  
+        A full-spectrum index that combines sentiment from both **news media (macro discourse)** and **social media (micro discourse)**. It reflects the *collective emotional state of the market*, incorporating broader trends and investor reactions across different platforms.
 
----
+        - Data Sources: News + Reddit
+        - Analysis Models: FinBERT + RoBERTa
+        - Reflects overall sentiment volatility and herd behavior
+        - Weighting: News (30%), Reddit (70%) by default
 
-| Term | Meaning | Applies to |
-|------|---------|------------|
-| **Ratio** | The proportion of documents classified as **negative** out of the total (e.g., 0.40 = 40% negative). | News & Reddit |
-| **Avg Score** | The average **negative sentiment score** of the documents identified as negative only. A higher score means stronger negative tone. | News & Reddit |
-| **Std** (Standard Deviation) | The degree of variation in the individual negative sentiment scores. A higher Std implies more emotional volatility. | News & Reddit |
-""")
+        **FANI (Financial Anxiety News Index)**  
+        A focused index based solely on **news sentiment**. It captures *institutional anxiety* and *early signals of market concern* reflected by professional media.
+
+        - Data Sources: News only
+        - Analysis Model: FinBERT
+        - Faster to react to headlines and policy uncertainty
+        - Suitable for early-warning applications
+
+        ---
+
+        While FSMI captures the **market-wide emotional landscape**,  
+        FANI is a **sharper lens** zoomed in on **professional sentiment and media tone**.
+        """)
+        
+    st.markdown("---")
+
+    # ② News와 Reddit Combined만 작게 표시
+    st.markdown("### 📊 Component Indexes")
+    
+    col1, col2 = st.columns(2)
+    
+    # News Anxiety Index
+    if "Type" in df_index.columns and "News" in df_index["Type"].values:
+        news_row = df_index[df_index["Type"] == "News"]
+        news_score = float(news_row[anxiety_col].values[0])
+        with col1:
+            st.metric("News Anxiety Index", f"{news_score:.2f}")
+    
+    # Reddit Combined Anxiety Index
+    if "Type" in df_index.columns:
+        # "Reddit_Combined" 또는 "Reddit Combined" 찾기
+        reddit_type = None
+        for type_name in df_index["Type"].values:
+            if "reddit" in str(type_name).lower() and "combined" in str(type_name).lower():
+                reddit_type = type_name
+                break
+        
+        if reddit_type:
+            reddit_row = df_index[df_index["Type"] == reddit_type]
+            reddit_score = float(reddit_row[anxiety_col].values[0])
+            with col2:
+                st.metric("Reddit Combined Anxiety Index", f"{reddit_score:.2f}")
+    
+    # 추가 옵션: 원본 데이터 표시
+    if st.checkbox("Show all components"):
+        st.dataframe(df_index)
+        
+        # 용어 설명 부분을 여기로 이동
+        with st.expander("ℹ️ What are 'Ratio', 'Avg Score', and 'Std'?"):
+            st.markdown("""
+    ### 📘 Component Terminology
+
+    These three components help explain how the **Anxiety Index** is calculated for the following sources:
+    - `News`
+    - `Reddit_FinBERT`
+    - `Reddit_RoBERTa`
+
+    ---
+
+    | Term | Meaning | Applies to |
+    |------|---------|------------|
+    | **Ratio** | The proportion of documents classified as **negative** out of the total (e.g., 0.40 = 40% negative). | News & Reddit |
+    | **Avg Score** | The average **negative sentiment score** of the documents identified as negative only. A higher score means stronger negative tone. | News & Reddit |
+    | **Std** (Standard Deviation) | The degree of variation in the individual negative sentiment scores. A higher Std implies more emotional volatility. | News & Reddit |
+    """)
 
     else:
         st.warning("Anxiety index not available for this date.")
