@@ -278,7 +278,7 @@ if page == "Dashboard":
                 return stage
         return stages[2]  # default: 보통
 
-    # FSMI (기존 지수) 표시
+    # FSMI (기존 지수) 표시 - 단계 없이 검은색으로 값만 표시
     st.markdown("## 📈 FSMI (Full Spectrum)")
     if df_index is not None and not df_index.empty:
         # 컬럼명 확인
@@ -289,12 +289,8 @@ if page == "Dashboard":
             total_row = df_index[df_index["Type"] == "Total"]
             total_score = float(total_row[anxiety_col].values[0])
             
-            # 단계 결정
-            stage_info = get_anxiety_stage(total_score)
-            
-            # 스코어와 단계 표시
-            st.markdown(f"<h2 style='text-align: center; color: {stage_info['color']};'>{total_score:.2f}</h2>", unsafe_allow_html=True)
-            st.markdown(f"<p style='text-align: center; color: {stage_info['color']};'><b>{stage_info['label']}</b></p>", unsafe_allow_html=True)
+            # 단계 없이 검은색으로 스코어만 표시
+            st.markdown(f"<h2 style='text-align: center; color: #000000;'>{total_score:.2f}</h2>", unsafe_allow_html=True)
         else:
             st.warning("FSMI not available for this date.")
 
@@ -313,25 +309,25 @@ if page == "Dashboard":
                 z_score_val = fani_row["Z-Score Mean"].values[0]
                 if pd.notna(z_score_val):
                     z_score = float(z_score_val)
-                    z100 = z_score * 100
-                    stage_info = get_fani_stage_from_z100(z100)
+                    z100 = z_score * 100  # Z-score에 100 곱하기
+                    stage_info = get_fani_stage_from_z100(z100)  # z100 기반 단계 결정
                     
-                    # 스코어와 단계 표시
+                    # Z-score * 100 값과 단계 표시
                     st.markdown(f"<h2 style='text-align: center; color: {stage_info['color']};'>{z100:.2f}</h2>", unsafe_allow_html=True)
                     st.markdown(f"<p style='text-align: center; color: {stage_info['color']};'><b>{stage_info['label']}</b></p>", unsafe_allow_html=True)
                 else:
                     # Z-score가 없는 경우 기존 방식 사용
                     fani_score_original = float(fani_row[anxiety_col].values[0])
-                    fani_score = fani_score_original * 100
-                    stage_info = get_anxiety_stage(fani_score_original)
+                    fani_score = fani_score_original * 100  # 여기도 100 곱하기
+                    stage_info = get_anxiety_stage(fani_score_original)  # 원래 값으로 단계 결정
                     
                     st.markdown(f"<h2 style='text-align: center; color: {stage_info['color']};'>{fani_score:.2f}</h2>", unsafe_allow_html=True)
                     st.markdown(f"<p style='text-align: center; color: {stage_info['color']};'><b>{stage_info['label']}</b></p>", unsafe_allow_html=True)
             else:
                 # Z-Score Mean 컬럼이 없는 경우 기존 방식 사용
                 fani_score_original = float(fani_row[anxiety_col].values[0])
-                fani_score = fani_score_original * 100
-                stage_info = get_anxiety_stage(fani_score_original)
+                fani_score = fani_score_original * 100  # 여기도 100 곱하기
+                stage_info = get_anxiety_stage(fani_score_original)  # 원래 값으로 단계 결정
                 
                 st.markdown(f"<h2 style='text-align: center; color: {stage_info['color']};'>{fani_score:.2f}</h2>", unsafe_allow_html=True)
                 st.markdown(f"<p style='text-align: center; color: {stage_info['color']};'><b>{stage_info['label']}</b></p>", unsafe_allow_html=True)
