@@ -106,12 +106,18 @@ class GCSHandler:
             
         try:
             blob_path = f"{self.prefix}/{date}/{filename}"
+            st.sidebar.write(f"💬 디버그: 파일 경로 - {blob_path}")  # 디버그 메시지 추가
+            
             bucket = self.client.bucket(self.bucket_name)
             blob = bucket.blob(blob_path)
+            
             if blob.exists():
                 return blob.download_as_text()
+            
+            st.sidebar.write(f"❌ 파일을 찾을 수 없음: {blob_path}")  # 파일이 없음을 표시
             return "(File not found)"
         except Exception as e:
+            st.sidebar.write(f"🔥 오류 발생: {str(e)}")  # 예외 정보 표시
             st.error(f"Error loading text file: {str(e)}")
             return "(Error loading file)"
     
