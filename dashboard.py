@@ -66,13 +66,34 @@ class GCSHandler:
             return None
             
         try:
-            blob_path = f"{self.prefix}/{date}/anxiety_index_final.csv"
+            update_time = None
             bucket = self.client.bucket(self.bucket_name)
-            blob = bucket.blob(blob_path)
-            if blob.exists():
-                data = blob.download_as_text()
+            
+            # 먼저 시간이 포함된 파일명 패턴 확인 (anxiety_index_final_1230.csv 형식)
+            prefix = f"{self.prefix}/{date}/anxiety_index_final_"
+            blobs = list(self.client.list_blobs(bucket, prefix=prefix))
+            
+            if blobs:
+                # 가장 최근의 파일 선택 (시간 정보가 있는 파일 중에서)
+                latest_blob = max(blobs, key=lambda b: b.name)
+                blob_path = latest_blob.name
+                
+                # 파일명에서 시간 정보 추출
+                time_match = re.search(r'_(\d{4})\.csv$', blob_path)
+                if time_match:
+                    time_part = time_match.group(1)
+                    update_time = f"{time_part[:2]}:{time_part[2:]}"
+            else:
+                # 기존 파일명 시도
+                blob_path = f"{self.prefix}/{date}/anxiety_index_final.csv"
+                latest_blob = bucket.blob(blob_path)
+            
+            if latest_blob.exists():
+                data = latest_blob.download_as_text()
                 df = pd.read_csv(io.StringIO(data))
-                df['Date'] = date  # 날짜 열 추가
+                df['Date'] = date
+                if update_time:
+                    df['update_time'] = update_time  # 업데이트 시간 정보 추가
                 return df
             return None
         except Exception as e:
@@ -114,13 +135,34 @@ class GCSHandler:
             return None
             
         try:
-            blob_path = f"final_fani_index/{date}/fani_index_final.csv"
+            update_time = None
             bucket = self.client.bucket(self.bucket_name)
-            blob = bucket.blob(blob_path)
-            if blob.exists():
-                data = blob.download_as_text()
+            
+            # 시간이 포함된 파일명 패턴 확인
+            prefix = f"final_fani_index/{date}/fani_index_final_"
+            blobs = list(self.client.list_blobs(bucket, prefix=prefix))
+            
+            if blobs:
+                # 가장 최근의 파일 선택
+                latest_blob = max(blobs, key=lambda b: b.name)
+                blob_path = latest_blob.name
+                
+                # 파일명에서 시간 정보 추출
+                time_match = re.search(r'_(\d{4})\.csv$', blob_path)
+                if time_match:
+                    time_part = time_match.group(1)
+                    update_time = f"{time_part[:2]}:{time_part[2:]}"
+            else:
+                # 기존 파일명 시도
+                blob_path = f"final_fani_index/{date}/fani_index_final.csv"
+                latest_blob = bucket.blob(blob_path)
+            
+            if latest_blob.exists():
+                data = latest_blob.download_as_text()
                 df = pd.read_csv(io.StringIO(data))
-                df['Date'] = date  # 날짜 열 추가
+                df['Date'] = date
+                if update_time:
+                    df['update_time'] = update_time  # 업데이트 시간 정보 추가
                 return df
             return None
         except Exception as e:
@@ -155,8 +197,26 @@ st.sidebar.markdown("""
 if page == "Dashboard":
     st.title("📉 Real-time Anxiety Dashboard")
 
+    # 업데이트 시간 정보 표시
+    update_time = None
+    
+    # FSMI 또는 FANI에서 업데이트 시간 가져오기
+    df_index = gcs.load_anxiety_index(selected_date)
+    df_fani = gcs.load_fani_index(selected_date)
+    
+    if df_index is not None and 'update_time' in df_index.columns:
+        update_time = df_index['update_time'].iloc[0]
+    elif df_fani is not None and 'update_time' in df_fani.columns:
+        update_time = df_fani['update_time'].iloc[0]
+    
+    # 업데이트 시간 표시
+    if update_time:
+        st.caption(f"Last updated: {selected_date} {update_time} UTC")
+    else:
+        st.caption(f"Data from: {selected_date}")
+        
     # Note about time zone
-    st.caption("Note: All times shown are in UTC. This dashboard reflects snapshots of sentiment around key US market hours.")
+    st.caption("All times shown are in UTC. This dashboard reflects snapshots of sentiment around key US market hours.")
 
     # Data sources information
     with st.expander("About the Data Sources"):
