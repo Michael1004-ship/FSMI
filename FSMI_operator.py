@@ -154,7 +154,9 @@ def main():
         # 6단계: GPT 보고서 작성
         [6, "GPT 라벨링", f"{base}/GPT/gpt_labeling.py"],
         [6, "클러스터 시각화", f"{base}/GPT/visualize_clusters.py"],
-        [6, "GPT 보고서 생성", f"{base}/GPT/gpt_report.py"]
+        [6, "GPT 보고서 생성", f"{base}/GPT/gpt_report.py"],
+        [6, "GPT 분석 리포트", f"{base}/GPT/gpt_analysis_report.py"],
+        [6, "GPT 제안 리포트", f"{base}/GPT/gpt_suggestion_report.py"]
     ]
     
     total_start_time = time.time()
