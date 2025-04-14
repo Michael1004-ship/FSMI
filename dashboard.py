@@ -5,6 +5,7 @@ from datetime import datetime
 import io
 import plotly.express as px
 import json
+import re
 
 # GCS 관련 클래스 - 모든 스토리지 관련 기능을 캡슐화
 class GCSHandler:
@@ -487,17 +488,53 @@ elif page == "Time Series":
     all_data = []
     
     for d in available_dates:
+        # FSMI 데이터 로드
         df = gcs.load_anxiety_index(d)
         if df is not None:
             # Add time information for twice daily data
             if 'timestamp' not in df.columns:
-                # Check if this date has already been processed
-                if d in processed_dates:
-                    df['timestamp'] = f"{d} 21:00:00"  # Market closing time (evening)
-                else:
-                    df['timestamp'] = f"{d} 14:30:00"  # Market opening time (morning)
-                    processed_dates.add(d)  # Record the date
+                # 파일명에서 시간을 추출 시도
+                time_part = None
+                try:
+                    # 파일 이름에서 시간 정보 추출 (anxiety_index_final_1230.csv 형식)
+                    time_match = re.search(r'_(\d{4})\.csv$', df.source_file) if hasattr(df, 'source_file') else None
+                    if time_match:
+                        time_part = time_match.group(1)
+                        time_str = f"{time_part[:2]}:{time_part[2:]}"
+                        df['timestamp'] = f"{d} {time_str}:00"  # HH:MM:00 형식
+                    else:
+                        # 기존 방식 유지
+                        if d in processed_dates:
+                            df['timestamp'] = f"{d} 21:00:00"  # Market closing time (evening)
+                        else:
+                            df['timestamp'] = f"{d} 14:30:00"  # Market opening time (morning)
+                            processed_dates.add(d)  # Record the date
+                except Exception as e:
+                    # 시간 추출 실패 시 기존 방식 사용
+                    if d in processed_dates:
+                        df['timestamp'] = f"{d} 21:00:00"
+                    else:
+                        df['timestamp'] = f"{d} 14:30:00"
+                        processed_dates.add(d)
+                    
             all_data.append(df)
+        
+        # FANI 데이터도 로드
+        df_fani = gcs.load_fani_index(d)
+        if df_fani is not None:
+            # FSMI와 같은 타임스탬프 할당
+            if df is not None and 'timestamp' in df.columns:
+                df_fani['timestamp'] = df['timestamp'].iloc[0]  # FSMI와 동일한 시간 사용
+            else:
+                # FSMI 없는 경우 동일한 로직 적용
+                if d in processed_dates:
+                    df_fani['timestamp'] = f"{d} 21:00:00"
+                else:
+                    df_fani['timestamp'] = f"{d} 14:30:00"
+                    processed_dates.add(d)
+            
+            # FANI 데이터 표시용으로 추가
+            all_data.append(df_fani)
 
     if all_data:
         full_df = pd.concat(all_data)
@@ -514,7 +551,7 @@ elif page == "Time Series":
         for date in full_df["Date"].unique():
             date_df = full_df[full_df["Date"] == date]
             
-            # There might be multiple timestamps for the same date
+            # 타임스탬프 가져오기
             if "timestamp" in date_df.columns:
                 timestamps = date_df["timestamp"].unique()
             else:
@@ -526,18 +563,26 @@ elif page == "Time Series":
                 else:
                     ts_df = date_df
                 
-                # Find Total value
-                total_row = ts_df[ts_df["Type"].str.lower() == "total"]
-                total_val = float(total_row[anxiety_col].iloc[0]) if not total_row.empty else None
+                # "Total" 값을 "FSMI"로 변경
+                fsmi_row = ts_df[ts_df["Type"].str.lower() == "total"]
+                fsmi_val = float(fsmi_row[anxiety_col].iloc[0]) if not fsmi_row.empty else None
                 
-                # Find News value
+                # FANI 값 추가
+                fani_val = None
+                fani_row = ts_df[ts_df["Type"].str.lower() == "fani"]
+                if not fani_row.empty:
+                    # FANI 값을 anxiety_col 또는 Z-Score Mean에서 가져오기
+                    if "Z-Score Mean" in fani_row.columns and pd.notna(fani_row["Z-Score Mean"].iloc[0]):
+                        fani_val = float(fani_row["Z-Score Mean"].iloc[0]) * 100  # Z-score * 100
+                    else:
+                        fani_val = float(fani_row[anxiety_col].iloc[0]) * 100  # Anxiety Index * 100
+                
+                # News 값
                 news_row = ts_df[ts_df["Type"].str.lower() == "news"]
                 news_val = float(news_row[anxiety_col].iloc[0]) if not news_row.empty else None
                 
-                # Find Reddit value (safely)
+                # Reddit 값
                 reddit_val = None
-                
-                # Try Reddit Combined first
                 reddit_combined = ts_df[
                     ts_df["Type"].str.lower().str.contains("reddit", na=False) & 
                     ts_df["Type"].str.lower().str.contains("combined", na=False)
@@ -546,22 +591,23 @@ elif page == "Time Series":
                 if not reddit_combined.empty:
                     reddit_val = float(reddit_combined[anxiety_col].iloc[0])
                 else:
-                    # Just look for Reddit rows
                     reddit_row = ts_df[ts_df["Type"].str.lower().str.contains("reddit", na=False)]
                     if not reddit_row.empty:
                         reddit_val = float(reddit_row[anxiety_col].iloc[0])
                 
-                # Distinguish between morning and evening
-                is_closing = "21:00:00" in ts  # Indicates market closing (evening) data
+                # 아침/저녁 구분
+                is_closing = "21:00:00" in ts
                 
+                # FSMI 대신 Total, FANI 추가
                 chart_data.append({
                     "DateTime": pd.to_datetime(ts),
                     "Date": pd.to_datetime(date).date(),
                     "Time": pd.to_datetime(ts).time(),
-                    "Total": total_val,
+                    "FSMI": fsmi_val,  # Total에서 FSMI로 이름 변경
+                    "FANI": fani_val,  # FANI 추가
                     "News": news_val,
                     "Reddit": reddit_val,
-                    "IsClosing": is_closing  # Flag for closing data
+                    "IsClosing": is_closing
                 })
         
         # Prepare chart data
@@ -620,7 +666,7 @@ elif page == "Time Series":
                 hover_template = "%{x|%Y-%m-%d %H:%M}<br>%{y:.2f}"
                 
                 # Display data as graph
-                fig = px.line(filtered_df, x="DateTime", y=["Total", "News", "Reddit"], markers=True,
+                fig = px.line(filtered_df, x="DateTime", y=["FSMI", "FANI", "News", "Reddit"], markers=True,
                             title=f"Anxiety Index Over Time ({title_range})",
                             labels={"value": "Anxiety Index", "variable": "Type"})
                 
@@ -631,7 +677,22 @@ elif page == "Time Series":
                     date_format = "%Y-%m-%d"
                 
                 # Set marker and hover
-                fig.update_traces(mode="lines+markers", marker=dict(size=8), hovertemplate=hover_template)
+                fig.update_traces(
+                    mode="lines+markers", 
+                    marker=dict(size=8), 
+                    hovertemplate=hover_template,
+                    selector=dict(name="FSMI"),
+                    line=dict(color="#000000", width=3)
+                )
+
+                fig.update_traces(
+                    mode="lines+markers", 
+                    marker=dict(size=8), 
+                    hovertemplate=hover_template,
+                    selector=dict(name="FANI"),
+                    line=dict(color="#d35400", width=3)
+                )
+
                 fig.update_layout(
                     hovermode="x unified", 
                     xaxis_title="", 
