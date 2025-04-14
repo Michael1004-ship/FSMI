@@ -197,12 +197,6 @@ st.sidebar.markdown("""
 if page == "Dashboard":
     st.title("📉 Real-time Anxiety Dashboard")
 
-    # 제목과 업데이트 시간을 나란히 표시
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        st.title("📉 Real-time Anxiety Dashboard")
-    
     # 업데이트 시간 정보 표시
     update_time = None
     
@@ -215,22 +209,11 @@ if page == "Dashboard":
     elif df_fani is not None and 'update_time' in df_fani.columns:
         update_time = df_fani['update_time'].iloc[0]
     
-    # 업데이트 시간 표시 (더 눈에 띄게)
-    with col2:
-        if update_time:
-            st.markdown(f"""
-            <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; text-align: center;">
-                <p style="margin: 0; font-size: 0.9em; color: #555;">Last Updated</p>
-                <p style="margin: 0; font-weight: bold; font-size: 1.1em;">{selected_date}<br>{update_time} UTC</p>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-            <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; text-align: center;">
-                <p style="margin: 0; font-size: 0.9em; color: #555;">Data From</p>
-                <p style="margin: 0; font-weight: bold; font-size: 1.1em;">{selected_date}</p>
-            </div>
-            """, unsafe_allow_html=True)
+    # 업데이트 시간 표시
+    if update_time:
+        st.caption(f"Last updated: {selected_date} {update_time} UTC")
+    else:
+        st.caption(f"Data from: {selected_date}")
         
     # Note about time zone
     st.caption("All times shown are in UTC. This dashboard reflects snapshots of sentiment around key US market hours.")
