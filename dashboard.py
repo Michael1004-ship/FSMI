@@ -501,9 +501,14 @@ if page == "Dashboard":
         if img4: st.image(img4, caption="Reddit Emotion Distribution")
 
     # ③ GPT 보고서
-    st.markdown("### 📄 GPT Emotion Report")
-    report = gcs.load_text_file(selected_date, "gpt_report_combined.txt")
-    st.text_area("GPT Report", value=report, height=400, key="report")
+    st.markdown("### 📄 Analysis Report")
+    report = gcs.load_text_file(selected_date, "gpt_analysis_report.txt")
+    st.text_area("GPT Analysis Report", value=report, height=400, key="report")
+
+    # 투자 제안 보고서 추가
+    st.markdown("### 💰 Investment Suggestion Report")
+    suggestion_report = gcs.load_text_file(selected_date, "gpt_suggestion_report.txt")
+    st.text_area("Investment Suggestion Report", value=suggestion_report, height=400, key="suggestion_report")
 
     # ④ Appendix
     if st.checkbox("📑 Show Appendix (Representative Sentences)"):
