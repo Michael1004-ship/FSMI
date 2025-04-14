@@ -1,80 +1,47 @@
-### FSMI: Finance Sentiment Market Index
+# FSMI: Financial Sentiment Market Index
 
-### Overview
+## 📌 Overview
 
-FSMI (Finance Sentiment Market Index) is a real-time sentiment indexing system that quantifies anxiety levels in the financial market using large-scale news and social media data.
+**FSMI (Financial Sentiment Market Index)** is a real-time sentiment indexing system that quantifies **market anxiety** using large-scale news and social media data.  
+Unlike traditional financial indicators that rely on volatility or price signals, FSMI captures the **emotional architecture of financial discourse** — offering early signals of instability and insight into investor psychology.
 
-While traditional financial indicators focus on economic metrics, volatility, and market flows, this project captures the emotional undercurrents of market participants — aiming to detect early signs of instability and provide a new lens for crisis prevention and investor psychology analysis.
+FSMI is designed to function as a **leading sentiment indicator**, supporting behavioral analysis, crisis detection, and real-time monitoring of market emotion.
 
-### Key Features
+---
 
-News and Reddit data collection (via GDELT and Reddit API)
+## 🔍 Key Features
 
-Sentiment analysis using FinBERT→ Converts positive/negative classifications into an anxiety score based on the proportion and intensity of negative sentiment
+- **Multisource Sentiment Collection**  
+  - News data via GDELT  
+  - Reddit data via Reddit API  
 
-Daily and weekly anxiety index generation (separately for news and social media)
+- **Model-Driven Emotion Scoring**  
+  - FinBERT-based sentiment classification (news & social posts)  
+  - RoBERTa embeddings for deep semantic emotion representation (Reddit)
 
-Time-lag model between news and social media
+- **Real-Time Index Generation**  
+  - Daily and weekly anxiety scores  
+  - Independent scoring for news vs. social media  
+  - Z-score normalization + nonlinear transformation  
 
-Formula:final_index = exp(0.3 * clipped_news_z + 0.7 * clipped_reddit_z).mean()
+- **Emotion Structure Modeling**  
+  - K-means clustering on RoBERTa embeddings  
+  - Automated cluster labeling using GPT  
+  - Interpretable sentiment archetypes (e.g., fear, distrust, greed)
 
-Each source is normalized via Z-score; then a weighted exponential average (30% news, 70% Reddit) is computed for nonlinear amplification
+- **Monitoring & Visualization**  
+  - Streamlit-based dashboard (interactive, real-time)  
+  - Planned migration to React + Next.js interface
 
-Fusion of FinBERT and RoBERTa sentiment outputs from Reddit for final score
+---
 
-Emotion structure clustering using RoBERTa embeddings + K-means
+## ⚠️ Intellectual Property & Security
 
-Automated cluster labeling and summary reporting via GPT
+> This project is protected by **patent-pending proprietary methodology.**  
+> While model types and general workflow are open for research sharing, the **core index calculation logic, weighting strategy, and transformation formula** are not publicly disclosed.  
+> Redistribution or re-implementation of the full index methodology is **strictly prohibited**.
 
-Real-time emotion monitoring dashboard (built with Streamlit)
+---
 
-### Project Structure
-
-/dashboard/            # Streamlit-based sentiment dashboard
-/building_index/       # Scripts for computing the daily anxiety index
-/clustering/           # RoBERTa embedding and emotion clustering
-/GPT/                  # GPT-based sentiment labeling and reporting
-/scripts/              # Preprocessing and shared utilities
-README.md              # This document
-
-### How to Run
-
-1. Clone the repository
-
-git clone https://github.com/Michael1004-ship/FSMI.git
-cd FSMI
-
-2. Install dependencies
-
-pip install -r requirements.txt
-
-3. Run the index builder
-
-python building_index/FSMI_operator.py
-
-⚠️ Note: Currently includes hardcoded paths. Config file structure will be added in future updates.
-
-### Roadmap
-
-Time series visualization of the anxiety index (via Plotly, Altair)
-
-Expansion into political sentiment indexing using news and social media
-
-### Philosophy
-
-"Emotion is not noise. Emotion is a structural force that moves markets."
-
-Where behavioral economics often treats emotion as temporary deviation,FSMI treats emotion as a structured, quantifiable, and time-sensitive force,offering a new paradigm for real-time financial market analysis.
-
-### Contact
-
-This is a personal research project.Collaboration, academic publication, and productization inquiries are welcome.Please feel free to reach out!
-
-[contact : wjdans1004@naver.com]
-
-### License
-This project is licensed for non-commercial research use.  
-See [LICENSE](./LICENSE) for details.
-
-⚠️ This project includes proprietary market index methodology currently under patent preparation. Redistribution of the core formula is not permitted.
+## 🛠️ Project Structure
 
